@@ -42,7 +42,7 @@ func DataError(f func(*gin.Context) (interface{}, error)) gin.HandlerFunc {
 }
 
 func defaultErrProc(ctx *gin.Context, err BusError) {
-	if ctx.Request.Header.Get("X-Requested-With") == "XMLHttpRequest" {
+	if ctx.Request != nil && ctx.Request.Header.Get("X-Requested-With") == "XMLHttpRequest" {
 		LOG.Error(err.Stack())
 		ctx.JSON(err.GetHttpCode(), err.JSON())
 		return
