@@ -11,24 +11,27 @@ var (
 	DataProc func(ctx *gin.Context, data interface{})
 )
 
+type ErrCtxFunc func(*gin.Context) error
+type DataErrorCtxFunc func(*gin.Context) (interface{}, error)
+
 func init() {
 	ErrProc = defaultErrProc
 	DataProc = defaultDataProc
 }
 
-func Error(f func(*gin.Context) error) gin.HandlerFunc {
+func Error(f ErrCtxFunc) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		err := f(ctx)
 		if err != nil {
 			ErrProc(ctx, err.(BusError))
 			return
 		}
-
+		DataProc(ctx, nil)
 		ctx.Next()
 	}
 }
 
-func DataError(f func(*gin.Context) (interface{}, error)) gin.HandlerFunc {
+func DataError[T any](f func(*gin.Context) (T, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		data, err := f(ctx)
 		if err != nil {

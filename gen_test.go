@@ -35,7 +35,7 @@ func Test_Err(t *testing.T) {
 	assert.Nil(t, resp.Data)
 }
 
-func Test_DataErr(t *testing.T) {
+func Test_GenericDataErr(t *testing.T) {
 	ErrProc = defaultErrProc
 	DataProc = defaultDataProc
 	api := &testApi{}
@@ -46,7 +46,7 @@ func Test_DataErr(t *testing.T) {
 
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
 	ctx.Request.Header.Set("X-Requested-With", "XMLHttpRequest")
-	DataError(api.Data)(ctx)
+	DataError(api.DataStruct)(ctx)
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 	t.Logf("resp body: %s\n\n", rec.Body.String())
@@ -80,6 +80,6 @@ func (t *testApi) Err(ctx *gin.Context) error {
 	return Err_Test.Wrap(errors.New("TestStack"))
 }
 
-func (t *testApi) Data(ctx *gin.Context) (interface{}, error) {
+func (t *testApi) DataStruct(ctx *gin.Context) (respUser, error) {
 	return respUser{Name: "TestName"}, nil
 }
