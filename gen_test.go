@@ -32,7 +32,7 @@ func Test_Err(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1001, resp.Code)
 	assert.Equal(t, "TestErr", resp.Message)
-	assert.Nil(t, resp.Data)
+	assert.NotNil(t, resp.Data)
 }
 
 func Test_GenericDataErr(t *testing.T) {

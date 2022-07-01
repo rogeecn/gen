@@ -45,13 +45,8 @@ func DataFunc[T any](f func(*gin.Context) (T, error)) gin.HandlerFunc {
 }
 
 func defaultErrProc(ctx *gin.Context, err BusError) {
-	if ctx.Request != nil && ctx.Request.Header.Get("X-Requested-With") == "XMLHttpRequest" {
-		LOG.Error(err.Stack())
-		ctx.JSON(err.GetHttpCode(), err.JSON())
-		return
-	}
-
-	ctx.AbortWithError(err.GetHttpCode(), err)
+	LOG.Error(err.Stack())
+	ctx.JSON(err.GetHttpCode(), err.JSON(gin.IsDebugging()))
 }
 
 func defaultDataProc(ctx *gin.Context, data interface{}) {

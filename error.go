@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -47,10 +48,20 @@ func (b BusError) Stack() string {
 	return fmt.Sprintf("%+v", b.Errors)
 }
 
-func (b BusError) JSON() JSON {
-	return JSON{
+func (b BusError) StackAsList() []string {
+	return strings.Split(b.Stack(), "\n")
+}
+
+func (b BusError) JSON(errorStack bool) JSON {
+	data := JSON{
 		Code:    b.ErrCode,
 		Message: b.Message,
 		Data:    nil,
 	}
+
+	if errorStack {
+		data.ErrorStack = b.StackAsList()
+	}
+
+	return data
 }
