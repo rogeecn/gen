@@ -22,7 +22,7 @@ func Test_Err(t *testing.T) {
 
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
 	ctx.Request.Header.Set("X-Requested-With", "XMLHttpRequest")
-	Error(api.Err)(ctx)
+	Func(api.Err)(ctx)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
 	t.Logf("resp body: %s\n\n", rec.Body.String())
@@ -46,7 +46,7 @@ func Test_GenericDataErr(t *testing.T) {
 
 	ctx.Request = httptest.NewRequest(http.MethodGet, "/", nil)
 	ctx.Request.Header.Set("X-Requested-With", "XMLHttpRequest")
-	DataError(api.DataStruct)(ctx)
+	DataFunc(api.DataStruct)(ctx)
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 	t.Logf("resp body: %s\n\n", rec.Body.String())
@@ -80,6 +80,6 @@ func (t *testApi) Err(ctx *gin.Context) error {
 	return Err_Test.Wrap(errors.New("TestStack"))
 }
 
-func (t *testApi) DataStruct(ctx *gin.Context) (respUser, error) {
-	return respUser{Name: "TestName"}, nil
+func (t *testApi) DataStruct(ctx *gin.Context) (*respUser, error) {
+	return &respUser{Name: "TestName"}, nil
 }

@@ -9,8 +9,8 @@ var (
 
 func main() {
 	svc := gin.Default()
-	svc.GET("/user/:name", gen.Error(serve))
-	svc.GET("/data", gen.DataError(serveData))
+	svc.GET("/user/:name", gen.Func(serve))
+	svc.GET("/data", gen.DataFunc(serveData))
 	svc.Run(":888")
 }
 
@@ -18,7 +18,7 @@ func serve(ctx *gin.Context) error {
 	return BusErr_UserNotFound
 }
 
-func serveData(ctx *gin.Context) (interface{}, error) {
+func serveData(ctx *gin.Context) (User, error) {
 	return User{Name: "John"}, nil
 }
 ```

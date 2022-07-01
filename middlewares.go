@@ -19,7 +19,7 @@ func init() {
 	DataProc = defaultDataProc
 }
 
-func Error(f ErrCtxFunc) gin.HandlerFunc {
+func Func(f ErrCtxFunc) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		err := f(ctx)
 		if err != nil {
@@ -31,7 +31,7 @@ func Error(f ErrCtxFunc) gin.HandlerFunc {
 	}
 }
 
-func DataError[T any](f func(*gin.Context) (T, error)) gin.HandlerFunc {
+func DataFunc[T any](f func(*gin.Context) (T, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		data, err := f(ctx)
 		if err != nil {
