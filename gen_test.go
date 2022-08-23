@@ -202,8 +202,8 @@ func Test_DataFunc_P1_POST(t *testing.T) {
 	ErrBindParam := NewBusError(http.StatusBadRequest, 10001, "参数绑定失败")
 
 	svc := gin.Default()
-	svc.POST("/user", DataFunc1(api.DataP1Form, Bind(&respUser{}, ErrBindParam)))
-	svc.POST("/user2", DataFunc1(api.DataP1Form, Bind(&respUser{}, ErrBindParam)))
+	svc.POST("/user", DataFunc1(api.DataP1Form, BindBody(&respUser{}, ErrBindParam)))
+	svc.POST("/user2", DataFunc1(api.DataP1Form, BindBody(&respUser{}, ErrBindParam)))
 
 	form := &url.Values{}
 	form.Add("name", "TestName")

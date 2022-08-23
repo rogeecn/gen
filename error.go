@@ -49,6 +49,7 @@ func (b BusError) Stack() string {
 }
 
 func (b BusError) StackAsList() []string {
+	strings.ReplaceAll(b.Stack(), "\t", "        ")
 	return strings.Split(b.Stack(), "\n")
 }
 

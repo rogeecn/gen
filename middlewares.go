@@ -17,7 +17,7 @@ func init() {
 }
 
 func defaultErrProc(ctx *gin.Context, err BusError) {
-	LOG.Error(err.Stack())
+	gin.DefaultErrorWriter.Write([]byte(err.Stack()))
 	ctx.JSON(err.GetHttpCode(), err.JSON(gin.IsDebugging()))
 }
 
