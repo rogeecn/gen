@@ -50,8 +50,8 @@ func (b BusError) Stack() string {
 }
 
 func (b BusError) StackAsList() []string {
-	_ = strings.ReplaceAll(b.Stack(), "\t", "        ")
-	return strings.Split(b.Stack(), "\n")
+	stack := strings.ReplaceAll(b.Stack(), "\t", "        ")
+	return strings.Split(stack, "\n")
 }
 
 func (b BusError) JSON(ctx *gin.Context, errorStack bool) JsonResponse {
@@ -62,7 +62,7 @@ func (b BusError) JSON(ctx *gin.Context, errorStack bool) JsonResponse {
 		json = v.(JsonResponse)
 	}
 
-	json.SetCode(http.StatusOK).SetMessage("OK")
+	json.SetCode(b.ErrCode).SetMessage(b.Message)
 	if errorStack {
 		json.SetErrorStack(b.StackAsList())
 	}
