@@ -17,16 +17,19 @@ func init() {
 }
 
 func defaultErrProc(ctx *gin.Context, err BusError) {
-	gin.DefaultErrorWriter.Write([]byte(err.Stack()))
-	ctx.JSON(err.GetHttpCode(), err.JSON(gin.IsDebugging()))
+	_, _ = gin.DefaultErrorWriter.Write([]byte(err.Stack()))
+	ctx.JSON(err.GetHttpCode(), err.JSON(ctx, gin.IsDebugging()))
 }
 
 func defaultDataProc(ctx *gin.Context, data interface{}) {
-	ctx.JSONP(http.StatusOK, JSON{
-		Code:    http.StatusOK,
-		Message: "OK",
-		Data:    data,
-	})
+	var json JsonResponse
+	json = &JSON{}
+
+	if v, ok := ctx.Get(JsonResponseKey); ok && v != nil {
+		json = v.(JsonResponse)
+	}
+
+	ctx.JSONP(http.StatusOK, json.SetCode(http.StatusOK).SetMessage("OK").SetData(data))
 }
 
 func Func(f func(*gin.Context) error) gin.HandlerFunc {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
 
@@ -49,20 +50,22 @@ func (b BusError) Stack() string {
 }
 
 func (b BusError) StackAsList() []string {
-	strings.ReplaceAll(b.Stack(), "\t", "        ")
+	_ = strings.ReplaceAll(b.Stack(), "\t", "        ")
 	return strings.Split(b.Stack(), "\n")
 }
 
-func (b BusError) JSON(errorStack bool) JSON {
-	data := JSON{
-		Code:    b.ErrCode,
-		Message: b.Message,
-		Data:    nil,
+func (b BusError) JSON(ctx *gin.Context, errorStack bool) JsonResponse {
+	var json JsonResponse
+	json = &JSON{}
+
+	if v, ok := ctx.Get(JsonResponseKey); ok && v != nil {
+		json = v.(JsonResponse)
 	}
 
+	json.SetCode(http.StatusOK).SetMessage("OK")
 	if errorStack {
-		data.ErrorStack = b.StackAsList()
+		json.SetErrorStack(b.StackAsList())
 	}
 
-	return data
+	return json
 }
