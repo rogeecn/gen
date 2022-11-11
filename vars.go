@@ -1,5 +1,6 @@
 package gen
 
 var (
-	AlwaysStatusOK = false
+	AlwaysStatusOK      = false
+	DefaultBindBodyMIME = ""
 )

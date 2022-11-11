@@ -2,6 +2,7 @@ package gen
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,6 +35,10 @@ func String(key string, errRet BusError) func(*gin.Context) (string, error) {
 
 func BindBody[T any](param T, errRet BusError) func(*gin.Context) (T, error) {
 	return func(ctx *gin.Context) (T, error) {
+		if contentType := ctx.Request.Header.Get("Content-Type"); strings.TrimSpace(contentType) == "" {
+			ctx.Request.Header.Set("Content-Type", DefaultBindBodyMIME)
+		}
+
 		err := ctx.ShouldBind(&param)
 		if err != nil {
 			return param, errRet.Wrap(err)
