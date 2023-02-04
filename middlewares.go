@@ -22,7 +22,7 @@ func defaultErrProc(ctx *gin.Context, err error) {
 	case BusError:
 		busErr = err.(BusError)
 	default:
-		busErr = NewBusError(500, 501, err.Error())
+		busErr = NewBusError(500, 500, err.Error())
 	}
 
 	_, _ = gin.DefaultErrorWriter.Write([]byte(busErr.Stack()))
