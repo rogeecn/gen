@@ -30,14 +30,15 @@ func defaultErrProc(ctx *gin.Context, err error) {
 }
 
 func defaultDataProc(ctx *gin.Context, data interface{}) {
-	var json JsonResponse
-	json = &JSON{}
+	// var json JsonResponse
+	// json = &JSON{}
 
-	if v, ok := ctx.Get(JsonResponseKey); ok && v != nil {
-		json = v.(JsonResponse)
-	}
+	// if v, ok := ctx.Get(JsonResponseKey); ok && v != nil {
+	// 	json = v.(JsonResponse)
+	// }
 
-	ctx.JSONP(http.StatusOK, json.SetCode(http.StatusOK).SetMessage("OK").SetData(data))
+	// ctx.JSONP(http.StatusOK, json.SetCode(http.StatusOK).SetMessage("OK").SetData(data))
+	ctx.JSONP(http.StatusOK, data)
 }
 
 func Func(f func(*gin.Context) error) gin.HandlerFunc {
