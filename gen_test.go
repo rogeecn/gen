@@ -19,12 +19,9 @@ type respUser struct {
 	Name string `json:"name" form:"name"`
 }
 
-type testApi struct {
-}
+type testApi struct{}
 
-var (
-	Err_Test = NewBusError(http.StatusBadRequest, 1001, "TestErr")
-)
+var Err_Test = NewBusError(http.StatusBadRequest, 1001, "TestErr")
 
 func (t *testApi) Func(ctx *gin.Context) error {
 	return Err_Test.Wrap(errors.New("TestStack"))
@@ -80,8 +77,8 @@ func Test_Func_P1(t *testing.T) {
 	ErrParamNotExist := NewBusError(http.StatusBadRequest, 10001, "%d 参数不存在")
 
 	svc := gin.Default()
-	svc.GET("/step1/:uid", Func1(api.FuncP1, Int("uidd", ErrParamNotExist)))
-	svc.GET("/step2/:uid", Func1(api.FuncP1, Int("uid", ErrParamNotExist)))
+	svc.GET("/step1/:uid", Func1(api.FuncP1, Integer[int]("uidd", ErrParamNotExist)))
+	svc.GET("/step2/:uid", Func1(api.FuncP1, Integer[int]("uid", ErrParamNotExist)))
 
 	req := httptest.NewRequest(http.MethodGet, "/step1/100", nil)
 	w := httptest.NewRecorder()
@@ -131,8 +128,8 @@ func Test_DataFunc_P1(t *testing.T) {
 	ErrParamNotExist := NewBusError(http.StatusBadRequest, 10001, "%s 参数不存在")
 
 	svc := gin.Default()
-	svc.GET("/step1/:uid", DataFunc1(api.DataP1, Int("uidd", ErrParamNotExist)))
-	svc.GET("/step2/:uid", DataFunc1(api.DataP1, Int("uid", ErrParamNotExist)))
+	svc.GET("/step1/:uid", DataFunc1(api.DataP1, Integer[int]("uidd", ErrParamNotExist)))
+	svc.GET("/step2/:uid", DataFunc1(api.DataP1, Integer[int]("uid", ErrParamNotExist)))
 
 	req := httptest.NewRequest(http.MethodGet, "/step1/100", nil)
 	w := httptest.NewRecorder()
@@ -171,7 +168,7 @@ func Test_DataFunc_P2(t *testing.T) {
 	ErrParamNotExist := NewBusError(http.StatusBadRequest, 10001, "%s 参数不存在")
 
 	svc := gin.Default()
-	svc.GET("/:uid/:name", DataFunc2(api.DataP2, Int("uid", ErrParamNotExist), String("name", ErrParamNotExist)))
+	svc.GET("/:uid/:name", DataFunc2(api.DataP2, Integer[int]("uid", ErrParamNotExist), String("name", ErrParamNotExist)))
 
 	req := httptest.NewRequest(http.MethodGet, "/100/ZhangSan", nil)
 	w := httptest.NewRecorder()
@@ -202,8 +199,8 @@ func Test_DataFunc_P1_POST(t *testing.T) {
 	ErrBindParam := NewBusError(http.StatusBadRequest, 10001, "参数绑定失败")
 
 	svc := gin.Default()
-	svc.POST("/user", DataFunc1(api.DataP1Form, BindBody(&respUser{}, ErrBindParam)))
-	svc.POST("/user2", DataFunc1(api.DataP1Form, BindBody(&respUser{}, ErrBindParam)))
+	svc.POST("/user", DataFunc1(api.DataP1Form, Body(&respUser{}, ErrBindParam)))
+	svc.POST("/user2", DataFunc1(api.DataP1Form, Body(&respUser{}, ErrBindParam)))
 
 	form := &url.Values{}
 	form.Add("name", "TestName")

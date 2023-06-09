@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/exp/constraints"
 )
 
-func Int(key string, errRet BusError) func(*gin.Context) (int, error) {
-	return func(ctx *gin.Context) (int, error) {
+func Integer[T constraints.Integer](key string, errRet BusError) func(*gin.Context) (T, error) {
+	return func(ctx *gin.Context) (T, error) {
 		v, ok := ctx.Params.Get(key)
 		if !ok {
 			return 0, errRet.Format(key)
@@ -18,7 +19,7 @@ func Int(key string, errRet BusError) func(*gin.Context) (int, error) {
 		if err != nil {
 			return 0, errRet.Format(key).Wrap(err)
 		}
-		return i, nil
+		return T(i), nil
 	}
 }
 
@@ -33,7 +34,7 @@ func String(key string, errRet BusError) func(*gin.Context) (string, error) {
 	}
 }
 
-func BindBody[T any](param T, errRet BusError) func(*gin.Context) (T, error) {
+func Body[T any](param T, errRet BusError) func(*gin.Context) (T, error) {
 	return func(ctx *gin.Context) (T, error) {
 		if contentType := ctx.Request.Header.Get("Content-Type"); strings.TrimSpace(contentType) == "" {
 			ctx.Request.Header.Set("Content-Type", DefaultBindBodyMIME)
@@ -42,31 +43,28 @@ func BindBody[T any](param T, errRet BusError) func(*gin.Context) (T, error) {
 		err := ctx.ShouldBind(&param)
 		if err != nil {
 			return param, errRet.Wrap(err)
-
 		}
 
 		return param, nil
 	}
 }
 
-func BindQuery[T any](param T, errRet BusError) func(*gin.Context) (T, error) {
+func Query[T any](param T, errRet BusError) func(*gin.Context) (T, error) {
 	return func(ctx *gin.Context) (T, error) {
 		err := ctx.ShouldBindQuery(&param)
 		if err != nil {
 			return param, errRet.Wrap(err)
-
 		}
 
 		return param, nil
 	}
 }
 
-func BindHeader[T any](param T, errRet BusError) func(*gin.Context) (T, error) {
+func Header[T any](param T, errRet BusError) func(*gin.Context) (T, error) {
 	return func(ctx *gin.Context) (T, error) {
 		err := ctx.ShouldBindHeader(&param)
 		if err != nil {
 			return param, errRet.Wrap(err)
-
 		}
 
 		return param, nil
