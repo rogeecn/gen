@@ -28,7 +28,9 @@ func (b BusError) GetHttpCode() int {
 }
 
 func (b BusError) Format(params ...interface{}) BusError {
-	b.Message = fmt.Sprintf(b.Message, params...)
+	if strings.Contains(b.Message, "%") {
+		b.Message = fmt.Sprintf(b.Message, params...)
+	}
 	return b
 }
 
@@ -51,6 +53,9 @@ func (b BusError) Stack() string {
 
 func (b BusError) StackAsList() []string {
 	stack := strings.ReplaceAll(b.Stack(), "\t", "        ")
+	if stack == "<nil>" {
+		return nil
+	}
 	return strings.Split(stack, "\n")
 }
 

@@ -7,13 +7,15 @@ import (
 )
 
 var (
-	ErrProc  func(ctx *gin.Context, err error)
-	DataProc func(ctx *gin.Context, data interface{})
+	ErrProc          func(ctx *gin.Context, err error)
+	DataProc         func(ctx *gin.Context, data interface{})
+	ErrorConvertProc func(error) BusError
 )
 
 func init() {
 	ErrProc = defaultErrProc
 	DataProc = defaultDataProc
+	ErrorConvertProc = defaultErrorConvert
 }
 
 func defaultErrProc(ctx *gin.Context, err error) {
@@ -22,7 +24,7 @@ func defaultErrProc(ctx *gin.Context, err error) {
 	case BusError:
 		busErr = err.(BusError)
 	default:
-		busErr = NewBusError(500, 500, err.Error())
+		busErr = ErrorConvertProc(err)
 	}
 
 	_, _ = gin.DefaultErrorWriter.Write([]byte(busErr.Stack()))
