@@ -12,8 +12,8 @@ import (
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
 
-	"gorm.io/gen/field"
-	"gorm.io/gen/helper"
+	"go.ipao.vip/gen/field"
+	"go.ipao.vip/gen/helper"
 )
 
 // ResultInfo query/execute info
