@@ -282,7 +282,6 @@ func Test_{{.QueryStructName}}Query(t *testing.T) {
 		t.Error("clean table <{{.TableName}}> fail:", err)
 		return
 	}
-	
 	_, ok := {{.QueryStructName}}.GetFieldByName("")
 	if ok {
 		t.Error("GetFieldByName(\"\") from {{.QueryStructName}} success")
@@ -357,7 +356,6 @@ func Test_{{.QueryStructName}}Query(t *testing.T) {
 	if err != nil {
 		t.Error("FindByPage() on table <{{.TableName}}> fail:", err)
 	}
-	
 	_, err = _do.ScanByPage(&{{.StructInfo.Package}}.{{.ModelStructName}}{}, 0, 1)
 	if err != nil {
 		t.Error("ScanByPage() on table <{{.TableName}}> fail:", err)
@@ -372,7 +370,7 @@ func Test_{{.QueryStructName}}Query(t *testing.T) {
 	if err != nil {
 		t.Error("FirstOrCreate() on table <{{.TableName}}> fail:", err)
 	}
-	
+
 	var _a _another
 	var _aPK = field.NewString(_a.TableName(), "id")
 
@@ -385,7 +383,7 @@ func Test_{{.QueryStructName}}Query(t *testing.T) {
 	if err != nil {
 		t.Error("LeftJoin() on table <{{.TableName}}> fail:", err)
 	}
-	
+
 	_, err = _do.Not().Or().Clauses().Take()
 	if err != nil {
 		t.Error("Not/Or/Clauses on table <{{.TableName}}> fail:", err)
