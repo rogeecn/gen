@@ -10,6 +10,7 @@ import (
 	"gorm.io/hints"
 
 	"go.ipao.vip/gen/field"
+	"go.ipao.vip/gen/types"
 )
 
 var (
@@ -54,7 +55,9 @@ func build(stmt *gorm.Statement, opts ...stmtOpt) *gorm.Statement {
 	}
 
 	if _, ok := stmt.Clauses["SELECT"]; !ok && len(stmt.Selects) > 0 {
-		stmt.AddClause(clause.Select{Distinct: stmt.Distinct, Expression: clause.Expr{SQL: strings.Join(stmt.Selects, ",")}})
+		stmt.AddClause(
+			clause.Select{Distinct: stmt.Distinct, Expression: clause.Expr{SQL: strings.Join(stmt.Selects, ",")}},
+		)
 	}
 
 	findClauses := func() []string {
@@ -338,7 +341,8 @@ func TestDO_methods(t *testing.T) {
 			Result: "SELECT `id` WHERE `score` > (SELECT AVG(`score`) FROM `users_info`)",
 		},
 		{
-			Expr:         u.Select(u.ID, u.Name).Where(u.Columns(u.Score).Lte(u.Select(u.Score.Avg()).Where(u.Age.Gte(18)))),
+			Expr: u.Select(u.ID, u.Name).
+				Where(u.Columns(u.Score).Lte(u.Select(u.Score.Avg()).Where(u.Age.Gte(18)))),
 			ExpectedVars: []interface{}{18},
 			Result:       "SELECT `id`,`name` WHERE `score` <= (SELECT AVG(`score`) FROM `users_info` WHERE `age` >= ?)",
 		},
@@ -353,7 +357,9 @@ func TestDO_methods(t *testing.T) {
 			Result:       "SELECT `id` WHERE (`id`,`age`) IN (SELECT `id`,`age` FROM `users_info` WHERE `score` = ?)",
 		},
 		{
-			Expr:         u.Select(u.Age.Avg().As("avgage")).Group(u.Name).Having(u.Columns(u.Age.Avg()).Gt(u.Select(u.Age.Avg()).Where(u.Name.Like("name%")))),
+			Expr: u.Select(u.Age.Avg().As("avgage")).
+				Group(u.Name).
+				Having(u.Columns(u.Age.Avg()).Gt(u.Select(u.Age.Avg()).Where(u.Name.Like("name%")))),
 			Opts:         []stmtOpt{withFROM},
 			ExpectedVars: []interface{}{"name%"},
 			Result:       "SELECT AVG(`age`) AS `avgage` FROM `users_info` GROUP BY `name` HAVING AVG(`age`) > (SELECT AVG(`age`) FROM `users_info` WHERE `name` LIKE ?)",
@@ -394,7 +400,9 @@ func TestDO_methods(t *testing.T) {
 			Result: "SELECT * FROM `student` INNER JOIN `teacher` ON `student`.`instructor` = `teacher`.`id`",
 		},
 		{
-			Expr:         student.LeftJoin(teacher, student.Instructor.EqCol(teacher.ID)).Where(teacher.ID.Gt(0)).Select(student.Name, teacher.Name),
+			Expr: student.LeftJoin(teacher, student.Instructor.EqCol(teacher.ID)).
+				Where(teacher.ID.Gt(0)).
+				Select(student.Name, teacher.Name),
 			Result:       "SELECT `student`.`name`,`teacher`.`name` FROM `student` LEFT JOIN `teacher` ON `student`.`instructor` = `teacher`.`id` WHERE `teacher`.`id` > ?",
 			ExpectedVars: []interface{}{int64(0)},
 		},
@@ -404,7 +412,9 @@ func TestDO_methods(t *testing.T) {
 			ExpectedVars: []interface{}{int64(666)},
 		},
 		{
-			Expr:         student.Join(teacher, student.Instructor.EqCol(teacher.ID)).LeftJoin(teacher, student.ID.Gt(100)).Select(student.ID, student.Name, teacher.Name.As("teacher_name")),
+			Expr: student.Join(teacher, student.Instructor.EqCol(teacher.ID)).
+				LeftJoin(teacher, student.ID.Gt(100)).
+				Select(student.ID, student.Name, teacher.Name.As("teacher_name")),
 			Result:       "SELECT `student`.`id`,`student`.`name`,`teacher`.`name` AS `teacher_name` FROM `student` INNER JOIN `teacher` ON `student`.`instructor` = `teacher`.`id` LEFT JOIN `teacher` ON `student`.`id` > ?",
 			ExpectedVars: []interface{}{int64(100)},
 		},
