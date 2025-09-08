@@ -26,14 +26,14 @@ go get go.ipao.vip/gen
 
 ```go
 import (
-		"gorm.io/driver/postgres"
-		"gorm.io/gorm"
-		"go.ipao.vip/gen"
+  "gorm.io/driver/postgres"
+  "gorm.io/gorm"
+  "go.ipao.vip/gen"
 )
 
 db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 if err != nil {
-		panic(err)
+  panic(err)
 }
 ```
 
@@ -41,9 +41,9 @@ if err != nil {
 
 ```go
 g := gen.NewGenerator(gen.Config{
-		OutPath:      "./dao/query",
-		ModelPkgPath: "./dao/model",
-		// 其它配置项见下文
+  OutPath:      "./dao/query",
+  ModelPkgPath: "./dao/model",
+  // 其它配置项见下文
 })
 g.UseDB(db)
 g.GenerateAllTable() // 生成所有表
@@ -119,7 +119,7 @@ g.Execute()          // 输出代码到 OutPath
 
 以下示例带你从零到一，完成连接数据库、生成代码，并在业务代码中以类型安全的方式进行查询。
 
-1) 连接 PostgreSQL 并创建 Generator
+1. 连接 PostgreSQL 并创建 Generator
 
 ```go
 import (
@@ -139,7 +139,7 @@ g := gen.NewGenerator(gen.Config{
 g.UseDB(db)
 ```
 
-2) 生成模型与查询代码
+2. 生成模型与查询代码
 
 ```go
 // 生成单表（如 users）
@@ -149,13 +149,13 @@ g.GenerateModel("users")
 g.Execute()
 ```
 
-3) 在业务代码中使用生成的查询
+3. 在业务代码中使用生成的查询
 
 假设已生成包 `dao/query` 与 `dao/model`：
 
 ```go
 import (
-    q "your/module/dao/query"
+  q "your/module/dao/query"
 )
 
 qry := q.Use(db)      // 构造 Query 入口
@@ -179,7 +179,7 @@ rows, err := student.LeftJoin(teacher, student.Instructor.EqCol(teacher.ID)).
     Find()
 ```
 
-4) JSON/时间等 PostgreSQL 类型的使用
+4. JSON/时间等 PostgreSQL 类型的使用
 
 `go.ipao.vip/gen/types` 提供 PostgreSQL 类型与 JSON 表达式支持（详见 `types/README.md`）：
 
@@ -188,14 +188,14 @@ rows, err := student.LeftJoin(teacher, student.Instructor.EqCol(teacher.ID)).
 - 时间与日期：`types.Time`、`types.Date`
 - 其他类型：`Inet/CIDR/MACAddr`、`Range`、`TSVector/TSQuery` 等
 
-5) 使用字段表达式（可选）
+5. 使用字段表达式（可选）
 
 如需更强表达能力，可用 `go.ipao.vip/gen/field`：
 
 ```go
 import (
-    f "go.ipao.vip/gen/field"
-    t "go.ipao.vip/gen/types"
+  f "go.ipao.vip/gen/field"
+  t "go.ipao.vip/gen/types"
 )
 
 // JSONB：键路径比较与模糊匹配
@@ -207,7 +207,7 @@ inet := f.NewInet("hosts", "addr")
 _ = db.Where(inet.ContainedByEq(t.MustInet("10.0.0.0/8")))
 ```
 
-6) 常见配置进阶（可按需使用）
+6. 常见配置进阶（可按需使用）
 
 - `WithUnitTest: true`：生成基础单元测试模板
 - `FieldNullable/FieldCoverable`：控制 NULL/默认值字段是否使用指针
