@@ -808,12 +808,63 @@ func (d *DO) Delete(models ...interface{}) (info ResultInfo, err error) {
 			result = tx.Delete(targets)
 		}
 	} else {
-		targets := reflect.MakeSlice(reflect.SliceOf(reflect.PointerTo(d.modelType)), 0, len(models))
-		value := reflect.ValueOf(models[0])
-		for i := 0; i < value.Len(); i++ {
-			targets = reflect.Append(targets, value.Index(i))
+		// Normalize provided models into a slice of pointers to model type
+		v := reflect.ValueOf(models[0])
+		switch v.Kind() {
+		case reflect.Slice:
+			elemTyp := v.Type().Elem()
+			// Case 1: already []*T
+			if elemTyp.Kind() == reflect.Ptr && elemTyp.Elem() == d.modelType {
+				result = tx.Delete(v.Interface())
+				break
+			}
+			// Case 2: []T -> convert to []*T
+			if elemTyp == d.modelType {
+				ptrSlice := reflect.MakeSlice(reflect.SliceOf(reflect.PointerTo(d.modelType)), v.Len(), v.Len())
+				for i := 0; i < v.Len(); i++ {
+					elem := v.Index(i)
+					if elem.CanAddr() {
+						ptrSlice.Index(i).Set(elem.Addr())
+					} else {
+						cp := reflect.New(d.modelType)
+						cp.Elem().Set(elem)
+						ptrSlice.Index(i).Set(cp)
+					}
+				}
+				result = tx.Delete(ptrSlice.Interface())
+				break
+			}
+			// Fallback: unsupported element type, delete by model type
+			result = tx.Delete(reflect.New(d.modelType).Interface())
+		default:
+			// Treat variadic inputs as list of T or *T
+			ptrSlice := reflect.MakeSlice(reflect.SliceOf(reflect.PointerTo(d.modelType)), 0, len(models))
+			for _, m := range models {
+				mv := reflect.ValueOf(m)
+				if !mv.IsValid() {
+					continue
+				}
+				if mv.Type() == reflect.PtrTo(d.modelType) || (mv.Kind() == reflect.Ptr && mv.Elem().Type() == d.modelType) {
+					ptrSlice = reflect.Append(ptrSlice, mv)
+					continue
+				}
+				if mv.Type() == d.modelType {
+					if mv.CanAddr() {
+						ptrSlice = reflect.Append(ptrSlice, mv.Addr())
+					} else {
+						cp := reflect.New(d.modelType)
+						cp.Elem().Set(mv)
+						ptrSlice = reflect.Append(ptrSlice, cp)
+					}
+					continue
+				}
+			}
+			if ptrSlice.Len() == 0 {
+				result = tx.Delete(reflect.New(d.modelType).Interface())
+			} else {
+				result = tx.Delete(ptrSlice.Interface())
+			}
 		}
-		result = tx.Delete(targets.Interface())
 	}
 	return ResultInfo{RowsAffected: result.RowsAffected, Error: result.Error}, result.Error
 }
