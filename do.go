@@ -798,8 +798,14 @@ func (d *DO) assignSet(exprs []field.AssignExpr) (set clause.Set) {
 func (d *DO) Delete(models ...interface{}) (info ResultInfo, err error) {
 	var result *gorm.DB
 	tx := d.prepareTx()
+	// When no explicit models are provided, prefer using backfillData (if set) as delete target
+	// so that clause.Returning can scan multiple rows and fire hooks per row.
 	if len(models) == 0 || reflect.ValueOf(models[0]).Len() == 0 {
-		result = tx.Delete(reflect.New(d.modelType).Interface())
+		if d.backfillData != nil {
+			result = tx.Delete(d.backfillData)
+		} else {
+			result = tx.Delete(reflect.New(d.modelType).Interface())
+		}
 	} else {
 		targets := reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(d.modelType)), 0, len(models))
 		value := reflect.ValueOf(models[0])
