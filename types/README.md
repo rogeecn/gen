@@ -192,3 +192,75 @@ _ = DB.Create(&u).Error
 ——
 
 如需更多示例或想补充某个 PostgreSQL 类型的用法，请告知我们想覆盖的场景，我们会完善文档与示例代码。
+
+## 6. Field 表达式进阶（PostgreSQL）
+
+当你需要更强的可读性与可组合的表达式时，可使用 `go.ipao.vip/gen/field` 提供的类型安全字段助手。
+
+```go
+import (
+    field "go.ipao.vip/gen/field"
+    types "go.ipao.vip/gen/types"
+)
+```
+
+- JSONB：键路径比较/匹配与键存在性
+
+```go
+data := field.NewJSONB("users", "attributes")
+// 键存在（单键、任意键、全部键）
+DB.Where(data.HasKey("role")).Find(&[]any{})
+DB.Where(data.HasAnyKeys("role", "email_verified")).Find(&[]any{})
+DB.Where(data.HasAllKeys("name", "age")).Find(&[]any{})
+
+// 点分路径取值比较与匹配
+DB.Where(data.KeyEq("profile.age", 18)).Find(&[]any{})
+DB.Where(data.KeyILike("meta.title", "%hello%"))
+DB.Where(data.KeyRegexp("tags.0", "^(foo|bar)$"))
+
+// 直接提取文本作为子表达式使用
+title := data.ExtractText("meta", "title")
+DB.Where(title.ILike("%news%"))
+```
+
+- Range：重叠、包含、相邻
+
+```go
+nr := field.NewNumRange("events", "amount_range")
+q := types.NewNumRange(new(big.Rat).SetFloat64(1.0), new(big.Rat).SetFloat64(2.0), true, false)
+DB.Where(nr.Overlaps(q)).Or(nr.Contains(q)).Or(nr.Adjacent(q)).Find(&[]any{})
+```
+
+- INET/CIDR：网络包含关系
+
+```go
+inet := field.NewInet("hosts", "addr")
+DB.Where(inet.Contains(types.MustInet("10.0.0.0/8")))     // >>
+DB.Where(inet.ContainedByEq(types.MustInet("192.168.0.0/16"))) // <<=
+```
+
+- 几何：包含/距离/相交
+
+```go
+pt := field.NewPoint("geo", "pt")
+poly := field.NewPolygon("geo", "poly")
+DB.Where(poly.ContainsPoint(types.NewPoint(1, 2)))
+DB.Order(pt.DistanceTo(types.NewPoint(10, 10)).Asc())
+DB.Where(poly.Overlaps(types.NewPolygon([]types.Point{{0,0},{3,0},{3,3},{0,3}})))
+```
+
+- 全文检索：向量匹配
+
+```go
+vec := field.NewTSVector("docs", "vec")
+q := types.NewTSQuery("fox & jump")
+DB.Where(vec.Matches(q)).Find(&[]any{})
+```
+
+- 数组：包含/被包含/重叠（调用方提供数组值）
+
+```go
+arr := field.NewArray("t", "vals")
+// 传入驱动实现或原始字面量（例如 `pq.Array([]int{1,2})` 或 `"{1,2}"`）
+DB.Where(arr.Contains("{1,2}")).Or(arr.Overlaps("{2,3}"))
+```
