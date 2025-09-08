@@ -804,10 +804,11 @@ func (d *DO) Delete(models ...interface{}) (info ResultInfo, err error) {
 		if d.backfillData != nil {
 			result = tx.Delete(d.backfillData)
 		} else {
-			result = tx.Delete(reflect.New(d.modelType).Interface())
+			targets := reflect.New(reflect.SliceOf(reflect.PointerTo(d.modelType))).Interface()
+			result = tx.Delete(targets)
 		}
 	} else {
-		targets := reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(d.modelType)), 0, len(models))
+		targets := reflect.MakeSlice(reflect.SliceOf(reflect.PointerTo(d.modelType)), 0, len(models))
 		value := reflect.ValueOf(models[0])
 		for i := 0; i < value.Len(); i++ {
 			targets = reflect.Append(targets, value.Index(i))
