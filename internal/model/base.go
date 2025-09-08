@@ -198,7 +198,12 @@ func (m *Field) GenType() string {
 	if m.CustomGenType != "" {
 		return m.CustomGenType
 	}
+
 	typ := strings.TrimLeft(m.Type, "*")
+	if strings.HasPrefix(typ, "types.Array") {
+		return "Array"
+	}
+
 	switch typ {
 	case "string", "bytes":
 		return strings.Title(typ)

@@ -26,7 +26,6 @@ func (c *Column) SetDataTypeMap(m map[string]func(columnType gorm.ColumnType) (d
 
 // GetDataType get data type
 func (c *Column) GetDataType() (fieldtype string) {
-	fmt.Println("ColumnType: ", c.ColumnType.DatabaseTypeName())
 	if mapping, ok := c.dataTypeMap[strings.ToLower(c.DatabaseTypeName())]; ok {
 		return mapping(c.ColumnType)
 	}
