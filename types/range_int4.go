@@ -1,13 +1,13 @@
 package types
 
 import (
-    "context"
-    "database/sql"
-    "database/sql/driver"
+	"context"
+	"database/sql"
+	"database/sql/driver"
 
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 var (
@@ -22,9 +22,9 @@ func (Int4Range) GormDBDataType(*gorm.DB, *schema.Field) string { return "INT4RA
 
 // Interface implementations via delegation to Range[int32]
 func (r *Int4Range) Scan(value interface{}) error { return (*Range[int32])(r).Scan(value) }
-func (r Int4Range) Value() (driver.Value, error) { return (Range[int32])(r).Value() }
+func (r Int4Range) Value() (driver.Value, error)  { return (Range[int32])(r).Value() }
 func (r Int4Range) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    return (Range[int32])(r).GormValue(ctx, db)
+	return (Range[int32])(r).GormValue(ctx, db)
 }
 
 // Constructors

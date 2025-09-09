@@ -123,8 +123,11 @@ func formatRangeVal[T any](v T) string {
 		return strconv.FormatInt(int64(x), 10)
 	case int64:
 		return strconv.FormatInt(x, 10)
-	case *big.Rat:
-		return x.RatString()
+    case *big.Rat:
+        if x == nil {
+            return ""
+        }
+        return x.RatString()
 	case time.Time:
 		return x.Format(time.RFC3339Nano)
 	default:
