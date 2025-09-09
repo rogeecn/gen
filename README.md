@@ -214,3 +214,26 @@ _ = db.Where(inet.ContainedByEq(t.MustInet("10.0.0.0/8")))
 - `Mode`：选择是否生成默认全局查询入口等
 
 如需更深入的字段表达式与类型示例，请查看 `types/README.md` 与 `field/` 相关说明。
+
+## 配置文件
+
+```yaml
+imports:
+  - go.ipao.vip/gen
+  - gen-test/dto
+field_type:
+  comprehensive_types_table:
+    json_val: types.JSONType[dto.Test]
+```
+
+## 快速生成
+
+```go
+  var dsn = "host=host user=postgres password=password dbname=test port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gen.GenerateWithDefault(db, "")
+```

@@ -47,12 +47,76 @@ type RowsAffected int64
 
 var concurrent = runtime.NumCPU()
 
+func DefaultConfig() Config {
+	cfg := Config{
+		OutPath:          "./database/query",
+		Mode:             WithDefaultQuery,
+		OutFile:          "query.gen.go",
+		FieldSignable:    true,
+		FieldWithTypeTag: true,
+	}
+	cfg.WithImportPkgPath("go.ipao.vip/gen/types")
+
+	return cfg
+}
+
+type ConfigOpt struct {
+	Imports   []string                     `yaml:"imports"`
+	FieldType map[string]map[string]string `yaml:"field_type"`
+}
+
+func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
+	g := NewGenerator(DefaultConfig())
+	g.UseDB(db)
+
+	if transformConfigFile == "" {
+		g.ApplyBasic(g.GenerateAllTable()...)
+		g.Execute()
+	}
+
+	conf, err := os.ReadFile(transformConfigFile)
+	if err != nil {
+		panic(fmt.Errorf("read transform config file %q fail: %w", transformConfigFile, err))
+	}
+
+	// yaml config parse to ConfigOpt
+	var cfgOpt ConfigOpt
+	if err := helper.UnmarshalYAML([]byte(conf), &cfgOpt); err != nil {
+		panic(fmt.Errorf("parse yaml config fail: %w", err))
+	}
+
+	g.WithImportPkgPath(cfgOpt.Imports...)
+	if cfgOpt.FieldType == nil {
+		g.ApplyBasic(g.GenerateAllTable()...)
+		g.Execute()
+	}
+
+	tables, err := db.Migrator().GetTables()
+	if err != nil {
+		panic(fmt.Errorf("get all tables fail: %w", err))
+	}
+
+	models := []interface{}{}
+	for _, table := range tables {
+		opts := []ModelOpt{}
+		if fieldTypes, ok := cfgOpt.FieldType[table]; ok {
+			for field, typ := range fieldTypes {
+				opts = append(opts, FieldType(field, typ))
+			}
+		}
+		models = append(models, g.GenerateModel(table, opts...))
+	}
+	g.ApplyBasic(models...)
+
+	// Generate
+	g.Execute()
+}
+
 // NewGenerator create a new generator
 func NewGenerator(cfg Config) *Generator {
 	if err := cfg.Revise(); err != nil {
 		panic(fmt.Errorf("create generator fail: %w", err))
 	}
-
 	return &Generator{
 		Config: cfg,
 		Data:   make(map[string]*genInfo),
