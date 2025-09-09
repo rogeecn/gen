@@ -101,17 +101,34 @@ func parseRangeVal[T any](s string) (T, error) {
 			return zero, fmt.Errorf("invalid numrange %q", s)
 		}
 		return any(r).(T), nil
-	case time.Time:
-		layouts := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02 15:04:05-07", "2006-01-02"}
-		var t time.Time
-		var err error
-		for _, l := range layouts {
-			t, err = time.Parse(l, s)
-			if err == nil {
-				return any(t).(T), nil
-			}
-		}
-		return zero, err
+    case time.Time:
+        // PostgreSQL may quote timestamp bounds in range textual output
+        // e.g. ["2023-01-01 00:00:00","2023-01-02 00:00:00")
+        if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+            // best-effort unquote
+            if uq, err := strconv.Unquote(s); err == nil {
+                s = uq
+            } else {
+                s = strings.Trim(s, "\"")
+            }
+        }
+        // Support common timestamp formats produced/accepted by PostgreSQL
+        layouts := []string{
+            time.RFC3339Nano,
+            time.RFC3339,
+            "2006-01-02 15:04:05-07", // with numeric TZ offset
+            "2006-01-02 15:04:05",    // without TZ
+            "2006-01-02",             // date only
+        }
+        var t time.Time
+        var err error
+        for _, l := range layouts {
+            t, err = time.Parse(l, s)
+            if err == nil {
+                return any(t).(T), nil
+            }
+        }
+        return zero, err
 	default:
 		return zero, fmt.Errorf("unsupported range type")
 	}
