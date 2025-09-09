@@ -218,6 +218,8 @@ _ = db.Where(inet.ContainedByEq(t.MustInet("10.0.0.0/8")))
 ## 配置文件
 
 ```yaml
+ignores:
+  - migrations
 imports:
   - go.ipao.vip/gen
   - gen-test/dto
@@ -230,6 +232,7 @@ field_relate:
       # belong_to, has_one, has_many, many_to_many
       relation: belongs_to
       table: classes
+      json: class
       references: class_id # current table field
       foreign_key: id # foreign table field
       options:

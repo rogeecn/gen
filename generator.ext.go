@@ -30,6 +30,7 @@ type ConfigOptRelation struct {
 	Table      string `yaml:"table"`
 	ForeignKey string `yaml:"foreign_key"`
 	References string `yaml:"references"`
+	Json       string `yaml:"json"`
 
 	Options *struct {
 		RelatePointer      bool `yaml:"relate_pointer"`
@@ -58,6 +59,10 @@ func (c *ConfigOptRelation) Config(db *gorm.DB) *field.RelateConfig {
 		"foreignKey": {f(c.ForeignKey)},
 		"references": {f(c.References)},
 	})
+
+	if c.Json != "" {
+		opt.JSONTag = c.Json
+	}
 
 	if c.Options != nil {
 		opt.RelatePointer = c.Options.RelatePointer
@@ -136,7 +141,7 @@ func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
 					panic("unsupported relationship type: " + relation.Relation)
 				}
 
-				opts = append(opts, FieldRelate(r, "Relation"+f, g.GenerateModel(relation.Table), relation.Config(db)))
+				opts = append(opts, FieldRelate(r, f, g.GenerateModel(relation.Table), relation.Config(db)))
 			}
 		}
 		mapTables[table] = opts
