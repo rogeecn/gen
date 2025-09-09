@@ -1,13 +1,13 @@
 package types
 
 import (
-    "context"
-    "database/sql/driver"
-    "time"
+	"context"
+	"database/sql/driver"
+	"time"
 
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 type DateRange Range[time.Time]
@@ -15,9 +15,9 @@ type DateRange Range[time.Time]
 func (DateRange) GormDBDataType(*gorm.DB, *schema.Field) string { return "DATERANGE" }
 
 func (r *DateRange) Scan(value interface{}) error { return (*Range[time.Time])(r).Scan(value) }
-func (r DateRange) Value() (driver.Value, error) { return (Range[time.Time])(r).Value() }
+func (r DateRange) Value() (driver.Value, error)  { return (Range[time.Time])(r).Value() }
 func (r DateRange) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    return (Range[time.Time])(r).GormValue(ctx, db)
+	return (Range[time.Time])(r).GormValue(ctx, db)
 }
 
 // Constructors

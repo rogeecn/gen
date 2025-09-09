@@ -11,7 +11,7 @@ type String Field
 
 // Eq equal to
 func (field String) Eq(value string) Expr {
-    return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
+	return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
 }
 
 // Neq not equal to
@@ -66,17 +66,17 @@ func (field String) Like(value string) Expr {
 
 // NotLike ...
 func (field String) NotLike(value string) Expr {
-    return expr{e: clause.Not(field.Like(value).expression())}
+	return expr{e: clause.Not(field.Like(value).expression())}
 }
 
 // ILike case-insensitive LIKE using LOWER(field) LIKE LOWER(pattern)
 func (field String) ILike(pattern string) Expr {
-    return expr{e: clause.Expr{SQL: "LOWER(?) LIKE LOWER(?)", Vars: []interface{}{field.RawExpr(), pattern}}}
+	return expr{e: clause.Expr{SQL: "LOWER(?) LIKE LOWER(?)", Vars: []interface{}{field.RawExpr(), pattern}}}
 }
 
 // NotILike negated case-insensitive LIKE
 func (field String) NotILike(pattern string) Expr {
-    return expr{e: clause.Not(field.ILike(pattern).expression())}
+	return expr{e: clause.Not(field.ILike(pattern).expression())}
 }
 
 // Regexp ...
@@ -145,7 +145,7 @@ func (field String) Upper() String {
 
 // Field ...
 func (field String) Field(values ...string) String {
-    return String{field.field(values)}
+	return String{field.field(values)}
 }
 
 // SubstringIndex SUBSTRING_INDEX
@@ -193,11 +193,11 @@ func (field String) Substr(params ...int) String {
 }
 
 func (field String) toSlice(values []string) []interface{} {
-    slice := make([]interface{}, len(values))
-    for i, v := range values {
-        slice[i] = v
-    }
-    return slice
+	slice := make([]interface{}, len(values))
+	for i, v := range values {
+		slice[i] = v
+	}
+	return slice
 }
 
 // Bytes []byte type field
@@ -260,17 +260,17 @@ func (field Bytes) Like(value string) Expr {
 
 // NotLike ...
 func (field Bytes) NotLike(value string) Expr {
-    return expr{e: clause.Not(field.Like(value).expression())}
+	return expr{e: clause.Not(field.Like(value).expression())}
 }
 
 // ILike case-insensitive LIKE using LOWER(field) LIKE LOWER(pattern)
 func (field Bytes) ILike(pattern string) Expr {
-    return expr{e: clause.Expr{SQL: "LOWER(?) LIKE LOWER(?)", Vars: []interface{}{field.RawExpr(), pattern}}}
+	return expr{e: clause.Expr{SQL: "LOWER(?) LIKE LOWER(?)", Vars: []interface{}{field.RawExpr(), pattern}}}
 }
 
 // NotILike negated case-insensitive LIKE
 func (field Bytes) NotILike(pattern string) Expr {
-    return expr{e: clause.Not(field.ILike(pattern).expression())}
+	return expr{e: clause.Not(field.ILike(pattern).expression())}
 }
 
 // Regexp ...

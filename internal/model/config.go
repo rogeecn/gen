@@ -60,14 +60,14 @@ func (cfg *Config) Preprocess() *Config {
 	}
 	cfg.ModelPkg = filepath.Base(cfg.ModelPkg)
 
-    cfg.ModifyOpts, cfg.FilterOpts, cfg.CreateOpts, cfg.MethodOpts = sortOptions(cfg.ModelOpts)
+	cfg.ModifyOpts, cfg.FilterOpts, cfg.CreateOpts, cfg.MethodOpts = sortOptions(cfg.ModelOpts)
 
-    // Apply default data type map when none provided
-    if cfg.DataTypeMap == nil {
-        cfg.DataTypeMap = defaultDataTypeMap
-    }
+	// Apply default data type map when none provided
+	if cfg.DataTypeMap == nil {
+		cfg.DataTypeMap = defaultDataTypeMap
+	}
 
-    return cfg
+	return cfg
 }
 
 // GetNames get names

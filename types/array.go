@@ -281,3 +281,119 @@ func parsePgArrayElements(s string) []string {
 	}
 	return res
 }
+
+// Collection operations
+
+// Contains checks if the array contains the given element
+func (a Array[T]) Contains(elem T) bool {
+	for _, v := range a {
+		if any(v) == any(elem) {
+			return true
+		}
+	}
+	return false
+}
+
+// IndexOf returns the index of the first occurrence of elem in the array, or -1 if not found
+func (a Array[T]) IndexOf(elem T) int {
+	for i, v := range a {
+		if any(v) == any(elem) {
+			return i
+		}
+	}
+	return -1
+}
+
+// Remove removes all occurrences of elem from the array
+func (a Array[T]) Remove(elem T) Array[T] {
+	result := make([]T, 0, len(a))
+	for _, v := range a {
+		if any(v) != any(elem) {
+			result = append(result, v)
+		}
+	}
+	return Array[T](result)
+}
+
+// RemoveAt removes the element at the given index
+func (a Array[T]) RemoveAt(index int) Array[T] {
+	if index < 0 || index >= len(a) {
+		return a.Clone()
+	}
+	result := make([]T, 0, len(a)-1)
+	result = append(result, a[:index]...)
+	result = append(result, a[index+1:]...)
+	return Array[T](result)
+}
+
+// Unique returns a new array with duplicate elements removed
+func (a Array[T]) Unique() Array[T] {
+	seen := make(map[any]bool)
+	result := make([]T, 0, len(a))
+	for _, v := range a {
+		key := any(v)
+		if !seen[key] {
+			seen[key] = true
+			result = append(result, v)
+		}
+	}
+	return Array[T](result)
+}
+
+// Filter returns a new array containing only elements that satisfy the predicate
+func (a Array[T]) Filter(predicate func(T) bool) Array[T] {
+	result := make([]T, 0)
+	for _, v := range a {
+		if predicate(v) {
+			result = append(result, v)
+		}
+	}
+	return Array[T](result)
+}
+
+// Clear removes all elements from the array
+func (a *Array[T]) Clear() {
+	*a = Array[T](nil)
+}
+
+// IsEmpty returns true if the array has no elements
+func (a Array[T]) IsEmpty() bool {
+	return len(a) == 0
+}
+
+// Len returns the length of the array
+func (a Array[T]) Len() int {
+	return len(a)
+}
+
+// Clone creates a deep copy of the array
+func (a Array[T]) Clone() Array[T] {
+	if a == nil {
+		return nil
+	}
+	result := make([]T, len(a))
+	copy(result, a)
+	return Array[T](result)
+}
+
+// Equals compares two arrays for equality
+func (a Array[T]) Equals(other Array[T]) bool {
+	if len(a) != len(other) {
+		return false
+	}
+	for i, v := range a {
+		if any(v) != any(other[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// Reverse returns a new array with elements in reverse order
+func (a Array[T]) Reverse() Array[T] {
+	result := make([]T, len(a))
+	for i, v := range a {
+		result[len(a)-1-i] = v
+	}
+	return Array[T](result)
+}

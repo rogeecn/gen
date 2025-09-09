@@ -1,10 +1,10 @@
 package field
 
 import (
-    "fmt"
-    "time"
+	"fmt"
+	"time"
 
-    "gorm.io/gorm/clause"
+	"gorm.io/gorm/clause"
 )
 
 // Time time type field
@@ -190,9 +190,9 @@ func (field Time) IfNull(value time.Time) Expr {
 }
 
 func (field Time) toSlice(values ...time.Time) []interface{} {
-    slice := make([]interface{}, len(values))
-    for i, v := range values {
-        slice[i] = v
-    }
-    return slice
+	slice := make([]interface{}, len(values))
+	for i, v := range values {
+		slice[i] = v
+	}
+	return slice
 }

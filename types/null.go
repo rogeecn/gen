@@ -1,17 +1,17 @@
 package types
 
 import (
-    "context"
-    "database/sql"
-    "database/sql/driver"
-    "errors"
-    "fmt"
-    "reflect"
-    "strconv"
-    "time"
+	"context"
+	"database/sql"
+	"database/sql/driver"
+	"errors"
+	"fmt"
+	"reflect"
+	"strconv"
+	"time"
 
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // NullString represents a string that may be null.
@@ -90,14 +90,15 @@ func (n *Null[T]) Scan(value any) error {
 }
 
 func (n Null[T]) Value() (driver.Value, error) {
-    if !n.Valid {
-        return nil, nil
-    }
-    return n.V, nil
+	if !n.Valid {
+		return nil, nil
+	}
+	return n.V, nil
 }
 
 func (n Null[T]) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    v, _ := n.Value(); return gorm.Expr("?", v)
+	v, _ := n.Value()
+	return gorm.Expr("?", v)
 }
 
 // NewNull returns a new, non-null Null.

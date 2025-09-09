@@ -1,13 +1,13 @@
 package types
 
 import (
-    "context"
-    "database/sql/driver"
-    "fmt"
+	"context"
+	"database/sql/driver"
+	"fmt"
 
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 // BitString represents PostgreSQL BIT/VARBIT
@@ -30,7 +30,8 @@ func (b *BitString) Scan(value interface{}) error {
 func (b BitString) Value() (driver.Value, error) { return string(b), nil }
 
 func (b BitString) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    v, _ := b.Value(); return gorm.Expr("?", v)
+	v, _ := b.Value()
+	return gorm.Expr("?", v)
 }
 
 // Constructor

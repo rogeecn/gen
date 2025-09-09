@@ -1,15 +1,15 @@
 package types
 
 import (
-    "bytes"
-    "context"
-    "database/sql/driver"
-    "errors"
+	"bytes"
+	"context"
+	"database/sql/driver"
+	"errors"
 
-    "github.com/google/uuid"
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 // This datatype is similar to types.UUID, major difference being that
@@ -64,11 +64,12 @@ func (u *BinUUID) Scan(value interface{}) error {
 
 // Value is the valuer function for this datatype.
 func (u BinUUID) Value() (driver.Value, error) {
-    return uuid.UUID(u).MarshalBinary()
+	return uuid.UUID(u).MarshalBinary()
 }
 
 func (u BinUUID) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    v, _ := u.Value(); return gorm.Expr("?", v)
+	v, _ := u.Value()
+	return gorm.Expr("?", v)
 }
 
 // String returns the string form of the UUID.
@@ -118,4 +119,56 @@ func (u *BinUUID) IsNilPtr() bool {
 // IsEmptyPtr returns true if caller BinUUID ptr is nil or it's value is empty.
 func (u *BinUUID) IsEmptyPtr() bool {
 	return u.IsNilPtr() || u.IsEmpty()
+}
+
+// BinUUID utility methods
+
+// Version returns the UUID version
+func (u BinUUID) Version() int {
+	return int(uuid.UUID(u).Version())
+}
+
+// Variant returns the UUID variant
+func (u BinUUID) Variant() uuid.Variant {
+	return uuid.UUID(u).Variant()
+}
+
+// IsV1 checks if the UUID is version 1
+func (u BinUUID) IsV1() bool {
+	return u.Version() == 1
+}
+
+// IsV4 checks if the UUID is version 4
+func (u BinUUID) IsV4() bool {
+	return u.Version() == 4
+}
+
+// Compare compares two BinUUIDs (-1 if less, 0 if equal, 1 if greater)
+func (u BinUUID) Compare(other BinUUID) int {
+	return bytes.Compare(u.Bytes(), other.Bytes())
+}
+
+// Clone creates a copy of the BinUUID
+func (u BinUUID) Clone() BinUUID {
+	return BinUUID(uuid.UUID(u))
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (u BinUUID) MarshalBinary() ([]byte, error) {
+	return uuid.UUID(u).MarshalBinary()
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (u *BinUUID) UnmarshalBinary(data []byte) error {
+	var parsed uuid.UUID
+	if err := parsed.UnmarshalBinary(data); err != nil {
+		return err
+	}
+	*u = BinUUID(parsed)
+	return nil
+}
+
+// IsValid checks if the BinUUID is valid
+func (u BinUUID) IsValid() bool {
+	return uuid.UUID(u) != uuid.Nil
 }

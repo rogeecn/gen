@@ -75,3 +75,69 @@ func (i *Inet) Edit(mutator func(ip net.IP) net.IP) {
 	}
 	*i = Inet(mutator(net.IP(*i)))
 }
+
+// INET network operations
+
+// IsValid checks if the INET is a valid IP address
+func (i Inet) IsValid() bool {
+	ip := net.IP(i)
+	return len(ip) == net.IPv4len || len(ip) == net.IPv6len
+}
+
+// IsIPv4 checks if the INET is IPv4
+func (i Inet) IsIPv4() bool {
+	return net.IP(i).To4() != nil
+}
+
+// IsIPv6 checks if the INET is IPv6
+func (i Inet) IsIPv6() bool {
+	return net.IP(i).To4() == nil && net.IP(i).To16() != nil
+}
+
+// IsLoopback checks if the INET is a loopback address
+func (i Inet) IsLoopback() bool {
+	return net.IP(i).IsLoopback()
+}
+
+// IsPrivate checks if the INET is in a private IP range
+func (i Inet) IsPrivate() bool {
+	return net.IP(i).IsPrivate()
+}
+
+// IsMulticast checks if the INET is a multicast address
+func (i Inet) IsMulticast() bool {
+	return net.IP(i).IsMulticast()
+}
+
+// IsUnspecified checks if the INET is an unspecified address
+func (i Inet) IsUnspecified() bool {
+	return net.IP(i).IsUnspecified()
+}
+
+// IsLinkLocalUnicast checks if the INET is a link-local unicast address
+func (i Inet) IsLinkLocalUnicast() bool {
+	return net.IP(i).IsLinkLocalUnicast()
+}
+
+// IsGlobalUnicast checks if the INET is a global unicast address
+func (i Inet) IsGlobalUnicast() bool {
+	return net.IP(i).IsGlobalUnicast()
+}
+
+// IsPublic checks if the INET is in a public IP range
+func (i Inet) IsPublic() bool {
+	ip := net.IP(i)
+	return !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsMulticast()
+}
+
+// Clone creates a copy of the INET
+func (i Inet) Clone() Inet {
+	clone := make(net.IP, len(net.IP(i)))
+	copy(clone, net.IP(i))
+	return Inet(clone)
+}
+
+// Equals checks if two INETs are equal
+func (i Inet) Equals(other Inet) bool {
+	return net.IP(i).Equal(net.IP(other))
+}

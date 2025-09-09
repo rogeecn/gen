@@ -1,17 +1,17 @@
 package types
 
 import (
-    "context"
-    "database/sql/driver"
-    "encoding/json"
-    "errors"
-    "fmt"
-    "strings"
-    "time"
+	"context"
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
 
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 // Time is time data type.
@@ -70,11 +70,12 @@ func (t *Time) setFromTime(src time.Time) {
 
 // Value implements driver.Valuer interface and returns string format of Time.
 func (t Time) Value() (driver.Value, error) {
-    return t.String(), nil
+	return t.String(), nil
 }
 
 func (t Time) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    v, _ := t.Value(); return gorm.Expr("?", v)
+	v, _ := t.Value()
+	return gorm.Expr("?", v)
 }
 
 // String implements fmt.Stringer interface.

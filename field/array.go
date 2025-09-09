@@ -16,6 +16,7 @@ func NewArray(table, column string, opts ...Option) Array {
 func (f Array) Eq(v interface{}) Expr {
 	return expr{e: clause.Expr{SQL: "? = ?", Vars: []interface{}{f.RawExpr(), v}}}
 }
+
 func (f Array) Neq(v interface{}) Expr {
 	return expr{e: clause.Expr{SQL: "? <> ?", Vars: []interface{}{f.RawExpr(), v}}}
 }

@@ -121,11 +121,11 @@ func (field Float64) Field(values ...float64) Float64 {
 }
 
 func (field Float64) toSlice(values ...float64) []interface{} {
-    slice := make([]interface{}, len(values))
-    for i, v := range values {
-        slice[i] = v
-    }
-    return slice
+	slice := make([]interface{}, len(values))
+	for i, v := range values {
+		slice[i] = v
+	}
+	return slice
 }
 
 // Float32 float32 type field

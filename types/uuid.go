@@ -1,13 +1,13 @@
 package types
 
 import (
-    "context"
-    "database/sql/driver"
+	"context"
+	"database/sql/driver"
 
-    "github.com/google/uuid"
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 // This datatype stores the uuid in the database as a string. To store the uuid
@@ -47,11 +47,12 @@ func (u *UUID) Scan(value interface{}) error {
 
 // Value is the valuer function for this datatype.
 func (u UUID) Value() (driver.Value, error) {
-    return uuid.UUID(u).Value()
+	return uuid.UUID(u).Value()
 }
 
 func (u UUID) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    v, _ := u.Value(); return gorm.Expr("?", v)
+	v, _ := u.Value()
+	return gorm.Expr("?", v)
 }
 
 // String returns the string form of the UUID.
@@ -87,4 +88,62 @@ func (u *UUID) IsNilPtr() bool {
 // IsEmptyPtr returns true if caller UUID ptr is nil or it's value is empty.
 func (u *UUID) IsEmptyPtr() bool {
 	return u.IsNilPtr() || u.IsEmpty()
+}
+
+// UUID utility methods
+
+// Version returns the UUID version
+func (u UUID) Version() int {
+	return int(uuid.UUID(u).Version())
+}
+
+// Variant returns the UUID variant
+func (u UUID) Variant() uuid.Variant {
+	return uuid.UUID(u).Variant()
+}
+
+// IsV1 checks if the UUID is version 1
+func (u UUID) IsV1() bool {
+	return u.Version() == 1
+}
+
+// IsV4 checks if the UUID is version 4
+func (u UUID) IsV4() bool {
+	return u.Version() == 4
+}
+
+// Compare compares two UUIDs (-1 if less, 0 if equal, 1 if greater)
+func (u UUID) Compare(other UUID) int {
+	s1, s2 := u.String(), other.String()
+	if s1 < s2 {
+		return -1
+	} else if s1 > s2 {
+		return 1
+	}
+	return 0
+}
+
+// Clone creates a copy of the UUID
+func (u UUID) Clone() UUID {
+	return UUID(uuid.UUID(u))
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (u UUID) MarshalBinary() ([]byte, error) {
+	return uuid.UUID(u).MarshalBinary()
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (u *UUID) UnmarshalBinary(data []byte) error {
+	var parsed uuid.UUID
+	if err := parsed.UnmarshalBinary(data); err != nil {
+		return err
+	}
+	*u = UUID(parsed)
+	return nil
+}
+
+// IsValid checks if the UUID is valid
+func (u UUID) IsValid() bool {
+	return uuid.UUID(u) != uuid.Nil && len(u.String()) == 36
 }

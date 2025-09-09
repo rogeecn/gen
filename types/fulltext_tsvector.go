@@ -1,13 +1,13 @@
 package types
 
 import (
-    "context"
-    "database/sql/driver"
-    "fmt"
+	"context"
+	"database/sql/driver"
+	"fmt"
 
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 type TSVector string
@@ -25,8 +25,8 @@ func (t *TSVector) Scan(value interface{}) error {
 func (t TSVector) Value() (driver.Value, error) { return string(t), nil }
 
 func (t TSVector) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    v, _ := t.Value()
-    return gorm.Expr("?", v)
+	v, _ := t.Value()
+	return gorm.Expr("?", v)
 }
 
 // Constructors

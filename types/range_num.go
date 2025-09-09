@@ -1,13 +1,13 @@
 package types
 
 import (
-    "context"
-    "database/sql/driver"
-    "math/big"
+	"context"
+	"database/sql/driver"
+	"math/big"
 
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 type NumRange Range[*big.Rat]
@@ -15,9 +15,9 @@ type NumRange Range[*big.Rat]
 func (NumRange) GormDBDataType(*gorm.DB, *schema.Field) string { return "NUMRANGE" }
 
 func (r *NumRange) Scan(value interface{}) error { return (*Range[*big.Rat])(r).Scan(value) }
-func (r NumRange) Value() (driver.Value, error) { return (Range[*big.Rat])(r).Value() }
+func (r NumRange) Value() (driver.Value, error)  { return (Range[*big.Rat])(r).Value() }
 func (r NumRange) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    return (Range[*big.Rat])(r).GormValue(ctx, db)
+	return (Range[*big.Rat])(r).GormValue(ctx, db)
 }
 
 // Constructors
@@ -30,6 +30,7 @@ func (r *NumRange) SetBounds(lower, upper *big.Rat) {
 	rr := (*Range[*big.Rat])(r)
 	rr.SetBounds(lower, upper)
 }
+
 func (r *NumRange) SetInclusivity(lowerInclusive, upperInclusive bool) {
 	rr := (*Range[*big.Rat])(r)
 	rr.SetInclusivity(lowerInclusive, upperInclusive)
