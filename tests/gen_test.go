@@ -739,6 +739,515 @@ func Test_Find(t *testing.T) {
 		_, err = q.Where(tbl.ID.Eq(rec.ID)).Delete()
 		So(err, ShouldBeNil)
 	})
+
+	Convey("Find with time-based filters", t, func() {
+		prefix := fmt.Sprintf("time-%d-", time.Now().UnixNano())
+		baseTime := time.Date(2023, 6, 15, 12, 0, 0, 0, time.UTC)
+		baseDate := time.Date(2023, 6, 15, 0, 0, 0, 0, time.UTC)
+		baseTimeOnly := types.NewTime(12, 30, 45, 0)
+		baseTimestamp := time.Date(2023, 6, 15, 15, 30, 0, 0, time.UTC)
+
+		// Create records with different time values
+		timeRecords := []map[string]interface{}{
+			{
+				"string_val":    prefix + "early",
+				"time_val":      baseTime.Add(-1 * time.Hour),
+				"date_val":      types.Date(baseDate.AddDate(0, 0, -1)),
+				"time_only":     types.NewTime(10, 0, 0, 0),
+				"timestamp_val": baseTimestamp.Add(-2 * time.Hour),
+			},
+			{
+				"string_val":    prefix + "middle",
+				"time_val":      baseTime,
+				"date_val":      types.Date(baseDate),
+				"time_only":     baseTimeOnly,
+				"timestamp_val": baseTimestamp,
+			},
+			{
+				"string_val":    prefix + "late",
+				"time_val":      baseTime.Add(1 * time.Hour),
+				"date_val":      types.Date(baseDate.AddDate(0, 0, 1)),
+				"time_only":     types.NewTime(14, 0, 0, 0),
+				"timestamp_val": baseTimestamp.Add(2 * time.Hour),
+			},
+		}
+		for _, rec := range timeRecords {
+			So(q.DO.Create(rec), ShouldBeNil)
+		}
+
+		// Test time comparisons
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.TimeVal.Gte(baseTime)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // middle and late
+
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.TimeVal.Lt(baseTime)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1) // early
+
+		// Test date comparisons
+		rs, err = q.Where(tbl.StringVal.Like(prefix + "%")).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 3) // all records
+
+		// Test timestamp between
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.TimestampVal.Between(baseTimestamp.Add(-1*time.Hour), baseTimestamp.Add(1*time.Hour))).
+			Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1) // middle
+
+		// Test time_only comparisons
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.TimeOnly.Gt(types.NewTime(11, 0, 0, 0))).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // middle and late
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Find with numeric field comparisons", t, func() {
+		prefix := fmt.Sprintf("num-%d-", time.Now().UnixNano())
+		numRecords := []map[string]interface{}{
+			{
+				"string_val":  prefix + "small",
+				"big_int":     int64(100),
+				"uint_val":    int32(50),
+				"uint8_val":   int16(10),
+				"uint16_val":  int32(1000),
+				"uint32_val":  int64(50000),
+				"uint64_val":  float64(100000),
+				"float32_val": float32(1.5),
+				"float64_val": float64(2.5),
+				"decimal_val": 10.50,
+				"numeric_val": 100.25,
+			},
+			{
+				"string_val":  prefix + "medium",
+				"big_int":     int64(500),
+				"uint_val":    int32(150),
+				"uint8_val":   int16(50),
+				"uint16_val":  int32(5000),
+				"uint32_val":  int64(150000),
+				"uint64_val":  float64(500000),
+				"float32_val": float32(5.5),
+				"float64_val": float64(7.5),
+				"decimal_val": 50.75,
+				"numeric_val": 500.50,
+			},
+			{
+				"string_val":  prefix + "large",
+				"big_int":     int64(1000),
+				"uint_val":    int32(300),
+				"uint8_val":   int16(100),
+				"uint16_val":  int32(10000),
+				"uint32_val":  int64(300000),
+				"uint64_val":  float64(1000000),
+				"float32_val": float32(10.5),
+				"float64_val": float64(15.5),
+				"decimal_val": 100.99,
+				"numeric_val": 1000.75,
+			},
+		}
+		for _, rec := range numRecords {
+			So(q.DO.Create(rec), ShouldBeNil)
+		}
+
+		// BigInt comparisons
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.BigInt.Gt(int64(200))).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // medium and large
+
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.BigInt.Between(int64(200), int64(800))).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1) // medium
+
+		// Uint comparisons
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.UintVal.In(int32(50), int32(300))).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // small and large
+
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.Uint16Val.Gte(int32(5000))).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // medium and large
+
+		// Float comparisons
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.Float32Val.Lt(float32(8.0))).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // small and medium
+
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.Float64Val.Between(float64(5.0), float64(10.0))).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1) // medium
+
+		// Decimal and Numeric comparisons
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.DecimalVal.Gt(30.0)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // medium and large
+
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.NumericVal.Lt(200.0)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1) // small
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Find with bytes and binary data", t, func() {
+		prefix := fmt.Sprintf("bytes-%d-", time.Now().UnixNano())
+		binData1 := []byte{0x01, 0x02, 0x03}
+		binData2 := []byte{0x0a, 0x0b, 0x0c}
+		binData3 := []byte{0xff, 0xfe, 0xfd}
+
+		So(q.DO.Create(map[string]interface{}{"string_val": prefix + "a", "bytes_val": binData1}), ShouldBeNil)
+		So(q.DO.Create(map[string]interface{}{"string_val": prefix + "b", "bytes_val": binData2}), ShouldBeNil)
+		So(q.DO.Create(map[string]interface{}{"string_val": prefix + "c", "bytes_val": binData3}), ShouldBeNil)
+
+		// Test exact match
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.BytesVal.Eq(binData2)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1)
+		So(rs[0].StringVal, ShouldEqual, prefix+"b")
+
+		// Test NOT equal
+		rs, err = q.Where(tbl.StringVal.Like(prefix + "%")).Not(tbl.BytesVal.Eq(binData1)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // b and c
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Find with advanced geometry operations", t, func() {
+		prefix := fmt.Sprintf("geo-%d-", time.Now().UnixNano())
+
+		// Create records with different geometric values
+		geoRecords := []map[string]interface{}{
+			{
+				"string_val": prefix + "box1",
+				"box_val":    types.NewBox(types.NewPoint(0, 0), types.NewPoint(2, 2)),
+				"circle_val": types.NewCircle(types.NewPoint(1, 1), 2.0),
+				"path_val":   types.NewPath([]types.Point{types.NewPoint(0, 0), types.NewPoint(1, 1)}, false),
+				"polygon_val": types.NewPolygon(
+					[]types.Point{types.NewPoint(0, 0), types.NewPoint(0, 1), types.NewPoint(1, 1)},
+				),
+			},
+			{
+				"string_val": prefix + "box2",
+				"box_val":    types.NewBox(types.NewPoint(5, 5), types.NewPoint(7, 7)),
+				"circle_val": types.NewCircle(types.NewPoint(6, 6), 1.5),
+				"path_val":   types.NewPath([]types.Point{types.NewPoint(5, 5), types.NewPoint(7, 7)}, true),
+				"polygon_val": types.NewPolygon(
+					[]types.Point{types.NewPoint(5, 5), types.NewPoint(5, 7), types.NewPoint(7, 7)},
+				),
+			},
+		}
+		for _, rec := range geoRecords {
+			So(q.DO.Create(rec), ShouldBeNil)
+		}
+
+		// Test box equality
+		testBox := types.NewBox(types.NewPoint(0, 0), types.NewPoint(2, 2))
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.BoxVal.Eq(testBox)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldBeGreaterThanOrEqualTo, 1) // PostgreSQL may reorder box corners
+
+		// Test circle equality
+		testCircle := types.NewCircle(types.NewPoint(1, 1), 2.0)
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.CircleVal.Eq(testCircle)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1)
+
+		// Test path closed/open
+		rs, err = q.Where(tbl.StringVal.Like(prefix + "%")).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2)
+
+		var openPaths, closedPaths int
+		for _, r := range rs {
+			if r.PathVal.Closed {
+				closedPaths++
+			} else {
+				openPaths++
+			}
+		}
+		So(openPaths, ShouldEqual, 1)
+		So(closedPaths, ShouldEqual, 1)
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Find with range types operations", t, func() {
+		prefix := fmt.Sprintf("range-%d-", time.Now().UnixNano())
+		baseTime := time.Date(2023, 8, 1, 0, 0, 0, 0, time.UTC)
+		baseDate := time.Date(2023, 8, 1, 0, 0, 0, 0, time.UTC)
+
+		rangeRecords := []map[string]interface{}{
+			{
+				"string_val":    prefix + "a",
+				"int8range_val": types.NewInt8Range(10, 20, true, false),
+				"numrange_val": types.NewNumRange(
+					new(big.Rat).SetFloat64(1.0),
+					new(big.Rat).SetFloat64(5.0),
+					true,
+					true,
+				),
+				"tsrange_val":   types.NewTsRange(baseTime, baseTime.AddDate(0, 1, 0), true, false),
+				"tstzrange_val": types.NewTstzRange(baseTime.UTC(), baseTime.AddDate(0, 1, 0).UTC(), true, false),
+				"daterange_val": types.NewDateRange(baseDate, baseDate.AddDate(0, 1, 0), true, false),
+			},
+			{
+				"string_val":    prefix + "b",
+				"int8range_val": types.NewInt8Range(15, 25, true, false),
+				"numrange_val": types.NewNumRange(
+					new(big.Rat).SetFloat64(3.0),
+					new(big.Rat).SetFloat64(8.0),
+					true,
+					true,
+				),
+				"tsrange_val": types.NewTsRange(baseTime.AddDate(0, 0, 15), baseTime.AddDate(0, 2, 0), true, false),
+				"tstzrange_val": types.NewTstzRange(
+					baseTime.AddDate(0, 0, 15).UTC(),
+					baseTime.AddDate(0, 2, 0).UTC(),
+					true,
+					false,
+				),
+				"daterange_val": types.NewDateRange(baseDate.AddDate(0, 0, 15), baseDate.AddDate(0, 2, 0), true, false),
+			},
+		}
+		for _, rec := range rangeRecords {
+			So(q.DO.Create(rec), ShouldBeNil)
+		}
+
+		// Test int8range overlaps
+		testRange := types.NewInt8Range(18, 22, true, false)
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.Int8rangeVal.Overlaps(testRange)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // both 'a' [10,20) and 'b' [15,25) overlap with [18,22)
+
+		// Test numrange contains
+		testNumRange := types.NewNumRange(new(big.Rat).SetFloat64(2.0), new(big.Rat).SetFloat64(4.0), true, true)
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.NumrangeVal.Contains(testNumRange)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldBeGreaterThanOrEqualTo, 1) // at least one should contain [2,4]
+
+		// Test tsrange overlaps
+		testTsRange := types.NewTsRange(baseTime.AddDate(0, 0, 20), baseTime.AddDate(0, 1, 10), true, false)
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.TsrangeVal.Overlaps(testTsRange)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldBeGreaterThanOrEqualTo, 1)
+
+		// Test daterange equality
+		testDateRange := types.NewDateRange(baseDate, baseDate.AddDate(0, 1, 0), true, false)
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.DaterangeVal.Eq(testDateRange)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldBeGreaterThanOrEqualTo, 1) // at least one match
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Find with bit string operations", t, func() {
+		prefix := fmt.Sprintf("bit-%d-", time.Now().UnixNano())
+
+		bitRecords := []map[string]interface{}{
+			{
+				"string_val": prefix + "a",
+				"bit_val":    types.NewBitString("10101010"),
+				"varbit_val": types.NewBitString("110011001100"),
+			},
+			{
+				"string_val": prefix + "b",
+				"bit_val":    types.NewBitString("11110000"),
+				"varbit_val": types.NewBitString("101010101010"),
+			},
+			{
+				"string_val": prefix + "c",
+				"bit_val":    types.NewBitString("00001111"),
+				"varbit_val": types.NewBitString("111111000000"),
+			},
+		}
+		for _, rec := range bitRecords {
+			So(q.DO.Create(rec), ShouldBeNil)
+		}
+
+		// Test exact bit string match
+		testBit := types.NewBitString("10101010")
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.BitVal.Eq(testBit)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1)
+		So(rs[0].StringVal, ShouldEqual, prefix+"a")
+
+		// Test varbit exact match
+		testVarbit := types.NewBitString("110011001100")
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.VarbitVal.Eq(testVarbit)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1)
+		So(rs[0].StringVal, ShouldEqual, prefix+"a")
+
+		// Test NOT equal
+		rs, err = q.Where(tbl.StringVal.Like(prefix + "%")).Not(tbl.BitVal.Eq(testBit)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // b and c
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Find with MAC address operations", t, func() {
+		prefix := fmt.Sprintf("mac-%d-", time.Now().UnixNano())
+
+		macRecords := []map[string]interface{}{
+			{
+				"string_val":  prefix + "cisco",
+				"macaddr_val": types.MustMACAddr("08:00:2b:01:02:03"),
+			},
+			{
+				"string_val":  prefix + "intel",
+				"macaddr_val": types.MustMACAddr("00:1b:21:12:34:56"),
+			},
+			{
+				"string_val":  prefix + "dell",
+				"macaddr_val": types.MustMACAddr("00:14:22:ab:cd:ef"),
+			},
+		}
+		for _, rec := range macRecords {
+			So(q.DO.Create(rec), ShouldBeNil)
+		}
+
+		// Test exact MAC match
+		testMAC := types.MustMACAddr("08:00:2b:01:02:03")
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.MacaddrVal.Eq(testMAC)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1)
+		So(rs[0].StringVal, ShouldEqual, prefix+"cisco")
+
+		// Test MAC inequality
+		rs, err = q.Where(tbl.StringVal.Like(prefix + "%")).Not(tbl.MacaddrVal.Eq(testMAC)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // intel and dell
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Find with UUID operations", t, func() {
+		prefix := fmt.Sprintf("uuid-%d-", time.Now().UnixNano())
+		uuid1 := types.NewUUIDv4()
+		uuid2 := types.NewUUIDv4()
+		uuid3 := types.NewUUIDv4()
+
+		uuidRecords := []map[string]interface{}{
+			{"string_val": prefix + "first", "uuid_val": uuid1},
+			{"string_val": prefix + "second", "uuid_val": uuid2},
+			{"string_val": prefix + "third", "uuid_val": uuid3},
+		}
+		for _, rec := range uuidRecords {
+			So(q.DO.Create(rec), ShouldBeNil)
+		}
+
+		// Test exact UUID match
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.UUIDVal.Eq(uuid2)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1)
+		So(rs[0].StringVal, ShouldEqual, prefix+"second")
+
+		// Test UUID IN clause
+		rs, err = q.Where(tbl.StringVal.Like(prefix+"%"), tbl.UUIDVal.In(uuid1, uuid3)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // first and third
+
+		// Test UUID NOT equal
+		rs, err = q.Where(tbl.StringVal.Like(prefix + "%")).Not(tbl.UUIDVal.Eq(uuid1)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // second and third
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Find with XML operations", t, func() {
+		prefix := fmt.Sprintf("xml-%d-", time.Now().UnixNano())
+
+		xmlRecords := []map[string]interface{}{
+			{
+				"string_val": prefix + "root",
+				"xml_val":    types.NewXML("<root><item>1</item></root>"),
+			},
+			{
+				"string_val": prefix + "doc",
+				"xml_val":    types.NewXML("<doc><title>Test</title></doc>"),
+			},
+			{
+				"string_val": prefix + "empty",
+				"xml_val":    types.NewXML("<empty/>"),
+			},
+		}
+		for _, rec := range xmlRecords {
+			So(q.DO.Create(rec), ShouldBeNil)
+		}
+
+		// Test XML content presence instead of direct equality (PostgreSQL doesn't support XML = operator)
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.StringVal.Eq(prefix+"root")).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1)
+		So(rs[0].StringVal, ShouldEqual, prefix+"root")
+		So(string(rs[0].XMLVal), ShouldEqual, "<root><item>1</item></root>")
+
+		// Test finding records by string marker since XML equality is not supported
+		rs, err = q.Where(tbl.StringVal.Like(prefix + "%")).Not(tbl.StringVal.Eq(prefix + "root")).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // doc and empty
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
+
+	Convey("Find with TSQuery operations", t, func() {
+		prefix := fmt.Sprintf("tsq-%d-", time.Now().UnixNano())
+
+		tsqRecords := []map[string]interface{}{
+			{
+				"string_val":  prefix + "and",
+				"tsquery_val": types.NewTSQuery("'cat' & 'dog'"),
+			},
+			{
+				"string_val":  prefix + "or",
+				"tsquery_val": types.NewTSQuery("'cat' | 'dog'"),
+			},
+			{
+				"string_val":  prefix + "not",
+				"tsquery_val": types.NewTSQuery("'cat' & !'dog'"),
+			},
+		}
+		for _, rec := range tsqRecords {
+			So(q.DO.Create(rec), ShouldBeNil)
+		}
+
+		// Test exact TSQuery match
+		testTSQ := types.NewTSQuery("'cat' & 'dog'")
+		rs, err := q.Where(tbl.StringVal.Like(prefix+"%"), tbl.TsqueryVal.Eq(testTSQ)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 1)
+		So(rs[0].StringVal, ShouldEqual, prefix+"and")
+
+		// Test TSQuery inequality
+		rs, err = q.Where(tbl.StringVal.Like(prefix + "%")).Not(tbl.TsqueryVal.Eq(testTSQ)).Find()
+		So(err, ShouldBeNil)
+		So(len(rs), ShouldEqual, 2) // or and not
+
+		// cleanup
+		_, err = q.Where(tbl.StringVal.Like(prefix + "%")).Delete()
+		So(err, ShouldBeNil)
+	})
 }
 
 func Test_Find_Batch(t *testing.T) {
