@@ -69,9 +69,20 @@ func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
 	g := NewGenerator(DefaultConfig())
 	g.UseDB(db)
 
+	g.WithTableNameStrategy(func(tableName string) string {
+		if strings.HasPrefix(tableName, "_") {
+			return ""
+		}
+		if tableName == "migrations" {
+			return ""
+		}
+		return tableName
+	})
+
 	if transformConfigFile == "" {
 		g.ApplyBasic(g.GenerateAllTable()...)
 		g.Execute()
+		return
 	}
 
 	conf, err := os.ReadFile(transformConfigFile)
@@ -86,10 +97,6 @@ func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
 	}
 
 	g.WithImportPkgPath(cfgOpt.Imports...)
-	if cfgOpt.FieldType == nil {
-		g.ApplyBasic(g.GenerateAllTable()...)
-		g.Execute()
-	}
 
 	tables, err := db.Migrator().GetTables()
 	if err != nil {
