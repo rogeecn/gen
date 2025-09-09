@@ -1,18 +1,22 @@
 package types
 
 import (
-    "context"
-    "database/sql/driver"
-    "fmt"
-    "net"
+	"context"
+	"database/sql/driver"
+	"fmt"
+	"net"
 
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 // CIDR represents PostgreSQL CIDR type
 type CIDR net.IPNet
+
+func (c CIDR) String() any {
+	return (*net.IPNet)(&c).String()
+}
 
 func (CIDR) GormDataType() string                          { return "cidr" }
 func (CIDR) GormDBDataType(*gorm.DB, *schema.Field) string { return "CIDR" }
@@ -37,8 +41,8 @@ func (c *CIDR) Scan(value interface{}) error {
 func (c CIDR) Value() (driver.Value, error) { return (*net.IPNet)(&c).String(), nil }
 
 func (c CIDR) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    v, _ := c.Value()
-    return gorm.Expr("?", v)
+	v, _ := c.Value()
+	return gorm.Expr("?", v)
 }
 
 // Constructors

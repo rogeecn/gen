@@ -1,18 +1,22 @@
 package types
 
 import (
-    "context"
-    "database/sql/driver"
-    "fmt"
-    "net"
+	"context"
+	"database/sql/driver"
+	"fmt"
+	"net"
 
-    "gorm.io/gorm"
-    "gorm.io/gorm/clause"
-    "gorm.io/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 // MACAddr represents PostgreSQL MACADDR type
 type MACAddr net.HardwareAddr
+
+func (m MACAddr) String() any {
+	return net.HardwareAddr(m).String()
+}
 
 func (MACAddr) GormDataType() string                          { return "macaddr" }
 func (MACAddr) GormDBDataType(*gorm.DB, *schema.Field) string { return "MACADDR" }
@@ -36,8 +40,8 @@ func (m *MACAddr) Scan(value interface{}) error {
 func (m MACAddr) Value() (driver.Value, error) { return net.HardwareAddr(m).String(), nil }
 
 func (m MACAddr) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
-    v, _ := m.Value()
-    return gorm.Expr("?", v)
+	v, _ := m.Value()
+	return gorm.Expr("?", v)
 }
 
 // Constructors
@@ -48,6 +52,7 @@ func NewMACAddr(s string) (MACAddr, error) {
 	}
 	return MACAddr(hw), nil
 }
+
 func MustMACAddr(s string) MACAddr {
 	v, err := NewMACAddr(s)
 	if err != nil {

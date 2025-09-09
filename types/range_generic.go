@@ -144,7 +144,8 @@ func formatRangeVal[T any](v T) string {
         if x == nil {
             return ""
         }
-        return x.RatString()
+        // Postgres NUMERIC expects decimal notation; format rational as decimal
+        return x.FloatString(10)
 	case time.Time:
 		return x.Format(time.RFC3339Nano)
 	default:
