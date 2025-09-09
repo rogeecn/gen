@@ -1,15 +1,24 @@
 package types
 
 import (
-	"math/big"
+    "context"
+    "database/sql/driver"
+    "math/big"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 type NumRange Range[*big.Rat]
 
 func (NumRange) GormDBDataType(*gorm.DB, *schema.Field) string { return "NUMRANGE" }
+
+func (r *NumRange) Scan(value interface{}) error { return (*Range[*big.Rat])(r).Scan(value) }
+func (r NumRange) Value() (driver.Value, error) { return (Range[*big.Rat])(r).Value() }
+func (r NumRange) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    return (Range[*big.Rat])(r).GormValue(ctx, db)
+}
 
 // Constructors
 func NewNumRange(lower, upper *big.Rat, lowerInclusive, upperInclusive bool) NumRange {

@@ -1,11 +1,13 @@
 package types
 
 import (
-	"database/sql/driver"
+    "context"
+    "database/sql/driver"
 
-	"github.com/google/uuid"
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "github.com/google/uuid"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 // This datatype stores the uuid in the database as a string. To store the uuid
@@ -45,7 +47,11 @@ func (u *UUID) Scan(value interface{}) error {
 
 // Value is the valuer function for this datatype.
 func (u UUID) Value() (driver.Value, error) {
-	return uuid.UUID(u).Value()
+    return uuid.UUID(u).Value()
+}
+
+func (u UUID) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := u.Value(); return gorm.Expr("?", v)
 }
 
 // String returns the string form of the UUID.

@@ -1,13 +1,15 @@
 package types
 
 import (
-	"database/sql/driver"
-	"fmt"
-	"strconv"
-	"strings"
+    "context"
+    "database/sql/driver"
+    "fmt"
+    "strconv"
+    "strings"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 type Circle struct {
@@ -37,7 +39,11 @@ func (c *Circle) Scan(value interface{}) error {
 	return nil
 }
 func (c Circle) Value() (driver.Value, error) {
-	return fmt.Sprintf("<(%g,%g),%g>", c.Center.X, c.Center.Y, c.Radius), nil
+    return fmt.Sprintf("<(%g,%g),%g>", c.Center.X, c.Center.Y, c.Radius), nil
+}
+
+func (c Circle) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := c.Value(); return gorm.Expr("?", v)
 }
 
 // Constructors

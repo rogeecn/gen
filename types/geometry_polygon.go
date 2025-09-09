@@ -1,13 +1,15 @@
 package types
 
 import (
-	"bytes"
-	"database/sql/driver"
-	"fmt"
-	"strings"
+    "bytes"
+    "context"
+    "database/sql/driver"
+    "fmt"
+    "strings"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 type Polygon struct{ Points []Point }
@@ -34,7 +36,7 @@ func (p *Polygon) Scan(value interface{}) error {
 }
 
 func (p Polygon) Value() (driver.Value, error) {
-	var buf bytes.Buffer
+    var buf bytes.Buffer
 	buf.WriteByte('(')
 	for i, pt := range p.Points {
 		if i > 0 {
@@ -44,6 +46,10 @@ func (p Polygon) Value() (driver.Value, error) {
 	}
 	buf.WriteByte(')')
 	return buf.String(), nil
+}
+
+func (p Polygon) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := p.Value(); return gorm.Expr("?", v)
 }
 
 // Constructors

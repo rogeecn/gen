@@ -1,13 +1,15 @@
 package types
 
 import (
-	"bytes"
-	"database/sql/driver"
-	"fmt"
-	"strings"
+    "bytes"
+    "context"
+    "database/sql/driver"
+    "fmt"
+    "strings"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 type Path struct {
@@ -42,7 +44,7 @@ func (p *Path) Scan(value interface{}) error {
 }
 
 func (p Path) Value() (driver.Value, error) {
-	var buf bytes.Buffer
+    var buf bytes.Buffer
 	if p.Closed {
 		buf.WriteByte('(')
 	} else {
@@ -60,6 +62,10 @@ func (p Path) Value() (driver.Value, error) {
 		buf.WriteByte(']')
 	}
 	return buf.String(), nil
+}
+
+func (p Path) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := p.Value(); return gorm.Expr("?", v)
 }
 
 // Constructors

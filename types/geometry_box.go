@@ -1,12 +1,14 @@
 package types
 
 import (
-	"database/sql/driver"
-	"fmt"
-	"strings"
+    "context"
+    "database/sql/driver"
+    "fmt"
+    "strings"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 type Box struct{ P1, P2 Point }
@@ -34,7 +36,11 @@ func (b *Box) Scan(value interface{}) error {
 	return nil
 }
 func (b Box) Value() (driver.Value, error) {
-	return fmt.Sprintf("(%g,%g),(%g,%g)", b.P1.X, b.P1.Y, b.P2.X, b.P2.Y), nil
+    return fmt.Sprintf("(%g,%g),(%g,%g)", b.P1.X, b.P1.Y, b.P2.X, b.P2.Y), nil
+}
+
+func (b Box) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := b.Value(); return gorm.Expr("?", v)
 }
 
 // Constructors

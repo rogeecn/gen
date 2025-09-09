@@ -1,21 +1,27 @@
 package types
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"net/url"
-	"strings"
+    "context"
+    "database/sql/driver"
+    "encoding/json"
+    "errors"
+    "fmt"
+    "net/url"
+    "strings"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 type URL url.URL
 
 func (u URL) Value() (driver.Value, error) {
-	return u.String(), nil
+    return u.String(), nil
+}
+
+func (u URL) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := u.Value(); return gorm.Expr("?", v)
 }
 
 func (u *URL) Scan(value interface{}) error {

@@ -1,13 +1,17 @@
 package types
 
 import (
-	"database/sql/driver"
-	"errors"
-	"fmt"
-	"math/big"
-	"strconv"
-	"strings"
-	"time"
+    "context"
+    "database/sql/driver"
+    "errors"
+    "fmt"
+    "math/big"
+    "strconv"
+    "strings"
+    "time"
+
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
 )
 
 // Range is a generic representation of PostgreSQL range types
@@ -66,6 +70,10 @@ func (r Range[T]) Value() (driver.Value, error) {
 		ub = ']'
 	}
 	return fmt.Sprintf("%c%s,%s%c", lb, formatRangeVal(r.Lower), formatRangeVal(r.Upper), ub), nil
+}
+
+func (r Range[T]) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := r.Value(); return gorm.Expr("?", v)
 }
 
 // Edit helpers on generic range

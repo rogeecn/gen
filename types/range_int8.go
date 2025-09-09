@@ -1,13 +1,23 @@
 package types
 
 import (
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "context"
+    "database/sql/driver"
+
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 type Int8Range Range[int64]
 
 func (Int8Range) GormDBDataType(*gorm.DB, *schema.Field) string { return "INT8RANGE" }
+
+func (r *Int8Range) Scan(value interface{}) error { return (*Range[int64])(r).Scan(value) }
+func (r Int8Range) Value() (driver.Value, error) { return (Range[int64])(r).Value() }
+func (r Int8Range) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    return (Range[int64])(r).GormValue(ctx, db)
+}
 
 // Constructors
 func NewInt8Range(lower, upper int64, lowerInclusive, upperInclusive bool) Int8Range {

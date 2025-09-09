@@ -1,11 +1,13 @@
 package types
 
 import (
-	"database/sql/driver"
-	"fmt"
+    "context"
+    "database/sql/driver"
+    "fmt"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 type XML string
@@ -21,6 +23,11 @@ func (x *XML) Scan(value interface{}) error {
 	return nil
 }
 func (x XML) Value() (driver.Value, error) { return string(x), nil }
+
+func (x XML) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := x.Value()
+    return gorm.Expr("?", v)
+}
 
 // Constructors
 func NewXML(s string) XML { return XML(s) }

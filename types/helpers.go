@@ -1,13 +1,15 @@
 package types
 
 import (
-	"database/sql/driver"
-	"encoding/hex"
-	"fmt"
-	"strings"
+    "context"
+    "database/sql/driver"
+    "encoding/hex"
+    "fmt"
+    "strings"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 // toString converts driver input to string
@@ -41,6 +43,10 @@ func (h *HexBytes) Scan(value interface{}) error {
 	return nil
 }
 func (h HexBytes) Value() (driver.Value, error) { return []byte(h), nil }
+
+func (h HexBytes) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := h.Value(); return gorm.Expr("?", v)
+}
 
 // SetHex replaces content from a hex string (with or without leading \\x)
 func (h *HexBytes) SetHex(hexStr string) error {

@@ -1,13 +1,15 @@
 package types
 
 import (
-	"database/sql/driver"
-	"errors"
-	"fmt"
-	"net"
+    "context"
+    "database/sql/driver"
+    "errors"
+    "fmt"
+    "net"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 // Inet represents PostgreSQL INET type
@@ -39,6 +41,11 @@ func (i *Inet) Scan(value interface{}) error {
 	}
 }
 func (i Inet) Value() (driver.Value, error) { return net.IP(i).String(), nil }
+
+func (i Inet) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := i.Value()
+    return gorm.Expr("?", v)
+}
 
 // Constructors
 func NewInet(s string) (Inet, error) {

@@ -1,15 +1,24 @@
 package types
 
 import (
-	"time"
+    "context"
+    "database/sql/driver"
+    "time"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 type TstzRange Range[time.Time]
 
 func (TstzRange) GormDBDataType(*gorm.DB, *schema.Field) string { return "TSTZRANGE" }
+
+func (r *TstzRange) Scan(value interface{}) error { return (*Range[time.Time])(r).Scan(value) }
+func (r TstzRange) Value() (driver.Value, error) { return (Range[time.Time])(r).Value() }
+func (r TstzRange) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    return (Range[time.Time])(r).GormValue(ctx, db)
+}
 
 // Constructors
 func NewTstzRange(lower, upper time.Time, lowerInclusive, upperInclusive bool) TstzRange {

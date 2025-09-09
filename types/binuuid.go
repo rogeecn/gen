@@ -1,13 +1,15 @@
 package types
 
 import (
-	"bytes"
-	"database/sql/driver"
-	"errors"
+    "bytes"
+    "context"
+    "database/sql/driver"
+    "errors"
 
-	"github.com/google/uuid"
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "github.com/google/uuid"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 // This datatype is similar to types.UUID, major difference being that
@@ -62,7 +64,11 @@ func (u *BinUUID) Scan(value interface{}) error {
 
 // Value is the valuer function for this datatype.
 func (u BinUUID) Value() (driver.Value, error) {
-	return uuid.UUID(u).MarshalBinary()
+    return uuid.UUID(u).MarshalBinary()
+}
+
+func (u BinUUID) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := u.Value(); return gorm.Expr("?", v)
 }
 
 // String returns the string form of the UUID.

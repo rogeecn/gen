@@ -1,11 +1,13 @@
 package types
 
 import (
-	"database/sql/driver"
-	"fmt"
+    "context"
+    "database/sql/driver"
+    "fmt"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/clause"
+    "gorm.io/gorm/schema"
 )
 
 // Money stored as string to preserve formatting/precision.
@@ -22,6 +24,12 @@ func (m *Money) Scan(value interface{}) error {
 	return nil
 }
 func (m Money) Value() (driver.Value, error) { return string(m), nil }
+
+// GormValuer
+func (m Money) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+    v, _ := m.Value()
+    return gorm.Expr("?", v)
+}
 
 // Constructors
 func NewMoney(s string) Money { return Money(s) }
