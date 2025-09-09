@@ -103,15 +103,20 @@ func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
 		panic(fmt.Errorf("get all tables fail: %w", err))
 	}
 
-	models := []interface{}{}
+	mapTables := make(map[string][]ModelOpt)
 	for _, table := range tables {
 		opts := []ModelOpt{}
 		if fieldTypes, ok := cfgOpt.FieldType[table]; ok {
-			for field, typ := range fieldTypes {
-				opts = append(opts, FieldType(field, typ))
+			for f, typ := range fieldTypes {
+				opts = append(opts, FieldType(f, typ))
 			}
 		}
-		models = append(models, g.GenerateModel(table, opts...))
+		mapTables[table] = opts
+	}
+
+	models := []interface{}{}
+	for tbl, opts := range mapTables {
+		models = append(models, g.GenerateModel(tbl, opts...))
 	}
 	g.ApplyBasic(models...)
 
