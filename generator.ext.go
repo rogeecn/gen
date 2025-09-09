@@ -69,6 +69,7 @@ func (c *ConfigOptRelation) Config(db *gorm.DB) *field.RelateConfig {
 }
 
 type ConfigOpt struct {
+	Ignores     []string                                `yaml:"ignores"`
 	Imports     []string                                `yaml:"imports"`
 	FieldType   map[string]map[string]string            `yaml:"field_type"`
 	FieldRelate map[string]map[string]ConfigOptRelation `yaml:"field_relate"`
@@ -77,16 +78,6 @@ type ConfigOpt struct {
 func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
 	g := NewGenerator(DefaultConfig())
 	g.UseDB(db)
-
-	g.WithTableNameStrategy(func(tableName string) string {
-		if strings.HasPrefix(tableName, "_") {
-			return ""
-		}
-		if tableName == "migrations" {
-			return ""
-		}
-		return tableName
-	})
 
 	if transformConfigFile == "" {
 		g.ApplyBasic(g.GenerateAllTable()...)
@@ -104,6 +95,21 @@ func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
 	if err := helper.UnmarshalYAML([]byte(conf), &cfgOpt); err != nil {
 		panic(fmt.Errorf("parse yaml config fail: %w", err))
 	}
+
+	g.WithTableNameStrategy(func(tableName string) string {
+		if strings.HasPrefix(tableName, "_") {
+			return ""
+		}
+
+		// ignores table
+		for _, ignore := range cfgOpt.Ignores {
+			if strings.EqualFold(ignore, tableName) {
+				return ""
+			}
+		}
+
+		return tableName
+	})
 
 	g.WithImportPkgPath(cfgOpt.Imports...)
 
