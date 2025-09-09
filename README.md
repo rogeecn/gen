@@ -224,6 +224,18 @@ imports:
 field_type:
   comprehensive_types_table:
     json_val: types.JSONType[dto.Test]
+field_relate:
+  students:
+    Class:
+      # belong_to, has_one, has_many, many_to_many
+      relation: belongs_to
+      table: classes
+      references: class_id # current table field
+      foreign_key: id # foreign table field
+      options:
+        relate_pointer: true
+        relate_slice: false
+        relate_slice_pointer: false
 ```
 
 ## 快速生成

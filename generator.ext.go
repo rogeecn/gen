@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 
 	"go.ipao.vip/gen/field"
 	"go.ipao.vip/gen/helper"
@@ -25,17 +26,46 @@ func DefaultConfig() Config {
 }
 
 type ConfigOptRelation struct {
-	Relation string `yaml:"relation"`
-	Table    string `yaml:"table"`
-	Options  *struct {
-		RelatePointer      bool          `yaml:"relate_pointer"`
-		RelateSlice        bool          `yaml:"relate_slice"`
-		RelateSlicePointer bool          `yaml:"relate_slice_pointer"`
-		JSONTag            string        `yaml:"json_tag"`
-		GORMTag            field.GormTag `yaml:"gorm_tag"`
-		Tag                field.Tag     `yaml:"tag"`
-		OverwriteTag       field.Tag     `yaml:"overwrite_tag"`
+	Relation   string `yaml:"relation"`
+	Table      string `yaml:"table"`
+	ForeignKey string `yaml:"foreign_key"`
+	References string `yaml:"references"`
+
+	Options *struct {
+		RelatePointer      bool `yaml:"relate_pointer"`
+		RelateSlice        bool `yaml:"relate_slice"`
+		RelateSlicePointer bool `yaml:"relate_slice_pointer"`
 	} `yaml:"options"`
+}
+
+func (c *ConfigOptRelation) Config(db *gorm.DB) *field.RelateConfig {
+	if len(c.ForeignKey) == 0 || len(c.References) == 0 {
+		panic(fmt.Errorf("foreign_key and references must be set for relation %s", c.Relation))
+	}
+	opt := &field.RelateConfig{}
+
+	var f func(string) string
+	if ns, ok := db.NamingStrategy.(schema.NamingStrategy); ok {
+		ns.SingularTable = true
+		f = ns.SchemaName
+	} else if db.NamingStrategy != nil {
+		f = db.NamingStrategy.SchemaName
+	} else {
+		panic("no valid NamingStrategy")
+	}
+
+	opt.GORMTag = field.GormTag(map[string][]string{
+		"foreignKey": {f(c.ForeignKey)},
+		"references": {f(c.References)},
+	})
+
+	if c.Options != nil {
+		opt.RelatePointer = c.Options.RelatePointer
+		opt.RelateSlice = c.Options.RelateSlice
+		opt.RelateSlicePointer = c.Options.RelateSlicePointer
+	}
+
+	return opt
 }
 
 type ConfigOpt struct {
@@ -100,15 +130,7 @@ func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
 					panic("unsupported relationship type: " + relation.Relation)
 				}
 
-				opts = append(opts, FieldRelateModel(r, f, g.GenerateModel(relation.Table), &field.RelateConfig{
-					RelatePointer:      relation.Options.RelatePointer,
-					RelateSlice:        relation.Options.RelateSlice,
-					RelateSlicePointer: relation.Options.RelateSlicePointer,
-					JSONTag:            relation.Options.JSONTag,
-					GORMTag:            relation.Options.GORMTag,
-					Tag:                relation.Options.Tag,
-					OverwriteTag:       relation.Options.OverwriteTag,
-				}))
+				opts = append(opts, FieldRelate(r, "Relation"+f, g.GenerateModel(relation.Table), relation.Config(db)))
 			}
 		}
 		mapTables[table] = opts

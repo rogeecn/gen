@@ -237,7 +237,9 @@ func (r *Relation) StructField() (fieldStr string) {
 func (r *Relation) StructFieldInit() string {
 	initStr := fmt.Sprintf("RelationField: field.NewRelation(%q, %q),\n", r.fieldPath, r.fieldType)
 	for _, relation := range r.childRelations {
-		initStr += relation.fieldName + ": struct {\nfield.RelationField\n" + strings.TrimSpace(relation.StructField()) + "}"
+		initStr += relation.fieldName + ": struct {\nfield.RelationField\n" + strings.TrimSpace(
+			relation.StructField(),
+		) + "}"
 		initStr += "{\n" + relation.StructFieldInit() + "},\n"
 	}
 	return initStr
