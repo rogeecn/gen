@@ -28,6 +28,7 @@ func DefaultConfig() Config {
 type ConfigOptRelation struct {
 	Relation   string `yaml:"relation"`
 	Table      string `yaml:"table"`
+	Pivot      string `yaml:"pivot"`
 	ForeignKey string `yaml:"foreign_key"`
 	References string `yaml:"references"`
 	Json       string `yaml:"json"`
@@ -40,7 +41,7 @@ type ConfigOptRelation struct {
 }
 
 func (c *ConfigOptRelation) Config(db *gorm.DB) *field.RelateConfig {
-	if len(c.ForeignKey) == 0 || len(c.References) == 0 {
+	if c.Relation != string(field.Many2Many) && (len(c.ForeignKey) == 0 || len(c.References) == 0) {
 		panic(fmt.Errorf("foreign_key and references must be set for relation %s", c.Relation))
 	}
 	opt := &field.RelateConfig{}
@@ -55,10 +56,13 @@ func (c *ConfigOptRelation) Config(db *gorm.DB) *field.RelateConfig {
 		panic("no valid NamingStrategy")
 	}
 
-	opt.GORMTag = field.GormTag(map[string][]string{
-		"foreignKey": {f(c.ForeignKey)},
-		"references": {f(c.References)},
-	})
+	opt.GORMTag = field.GormTag(map[string][]string{})
+	if c.Relation != string(field.Many2Many) {
+		opt.GORMTag["foreignKey"] = []string{f(c.ForeignKey)}
+		opt.GORMTag["references"] = []string{f(c.References)}
+	} else {
+		opt.GORMTag["many2many"] = []string{c.Pivot}
+	}
 
 	if c.Json != "" {
 		opt.JSONTag = c.Json

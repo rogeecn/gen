@@ -232,13 +232,18 @@ field_relate:
       # belong_to, has_one, has_many, many_to_many
       relation: belongs_to
       table: classes
-      json: class
       references: class_id # current table field
       foreign_key: id # foreign table field
-      options:
-        relate_pointer: true
-        relate_slice: false
-        relate_slice_pointer: false
+  teachers:
+    Classes:
+      relation: many_to_many
+      table: classes
+      pivot: class_teacher
+  classes:
+    Teachers:
+      relation: many_to_many
+      table: teachers
+      pivot: class_teacher
 ```
 
 ## 快速生成
