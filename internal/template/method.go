@@ -121,57 +121,57 @@ func ({{.S}} {{.QueryStructName}}Do) Unscoped() {{.ReturnObject}} {
 	return {{.S}}.withDO({{.S}}.DO.Unscoped())
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Create(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error {
+func ({{.S}} {{.QueryStructName}}Do) Create(values ...*{{.StructPkgPrefix}}{{.StructInfo.Type}}) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return {{.S}}.DO.Create(values)
 }
 
-func ({{.S}} {{.QueryStructName}}Do) CreateInBatches(values []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int) error {
+func ({{.S}} {{.QueryStructName}}Do) CreateInBatches(values []*{{.StructPkgPrefix}}{{.StructInfo.Type}}, batchSize int) error {
 	return {{.S}}.DO.CreateInBatches(values, batchSize)
 }
 
 // Save : !!! underlying implementation is different with GORM
 // The method is equivalent to executing the statement: db.Clauses(clause.OnConflict{UpdateAll: true}).Create(values)
-func ({{.S}} {{.QueryStructName}}Do) Save(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error {
+func ({{.S}} {{.QueryStructName}}Do) Save(values ...*{{.StructPkgPrefix}}{{.StructInfo.Type}}) error {
 	if len(values) == 0 {
 		return nil
 	}
 	return {{.S}}.DO.Save(values)
 }
 
-func ({{.S}} {{.QueryStructName}}Do) First() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) First() (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.First(); err != nil {
 		return nil, err
 	} else {
-		return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		return result.(*{{.StructPkgPrefix}}{{.StructInfo.Type}}), nil
 	}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Take() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) Take() (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.Take(); err != nil {
 		return nil, err
 	} else {
-		return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		return result.(*{{.StructPkgPrefix}}{{.StructInfo.Type}}), nil
 	}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Last() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) Last() (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.Last(); err != nil {
 		return nil, err
 	} else {
-		return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		return result.(*{{.StructPkgPrefix}}{{.StructInfo.Type}}), nil
 	}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Find() ([]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) Find() ([]*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error) {
 	result, err := {{.S}}.DO.Find()
-	return result.([]*{{.StructInfo.Package}}.{{.StructInfo.Type}}), err
+	return result.([]*{{.StructPkgPrefix}}{{.StructInfo.Type}}), err
 }
 
-func ({{.S}} {{.QueryStructName}}Do) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, err error) {
-	buf := make([]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, 0, batchSize)
+func ({{.S}} {{.QueryStructName}}Do) FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*{{.StructPkgPrefix}}{{.StructInfo.Type}}, err error) {
+	buf := make([]*{{.StructPkgPrefix}}{{.StructInfo.Type}}, 0, batchSize)
 	err = {{.S}}.DO.FindInBatches(&buf, batchSize, func(tx gen.Dao, batch int) error {
 		defer func() { results = append(results, buf...) }()
 		return fc(tx, batch)
@@ -179,7 +179,7 @@ func ({{.S}} {{.QueryStructName}}Do) FindInBatch(batchSize int, fc func(tx gen.D
 	return results, err
 }
 
-func ({{.S}} {{.QueryStructName}}Do) FindInBatches(result *[]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int, fc func(tx gen.Dao, batch int) error) error {
+func ({{.S}} {{.QueryStructName}}Do) FindInBatches(result *[]*{{.StructPkgPrefix}}{{.StructInfo.Type}}, batchSize int, fc func(tx gen.Dao, batch int) error) error {
 	return {{.S}}.DO.FindInBatches(result, batchSize, fc)
 }
 
@@ -205,23 +205,23 @@ func ({{.S}} {{.QueryStructName}}Do) Preload(fields ...field.RelationField) {{.R
 	return &{{.S}}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) FirstOrInit() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) FirstOrInit() (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.FirstOrInit(); err != nil {
 		return nil, err
 	} else {
-		return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		return result.(*{{.StructPkgPrefix}}{{.StructInfo.Type}}), nil
 	}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) FirstOrCreate() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) FirstOrCreate() (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.FirstOrCreate(); err != nil {
 		return nil, err
 	} else {
-		return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		return result.(*{{.StructPkgPrefix}}{{.StructInfo.Type}}), nil
 	}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) FindByPage(offset int, limit int) (result []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, count int64, err error) {
+func ({{.S}} {{.QueryStructName}}Do) FindByPage(offset int, limit int) (result []*{{.StructPkgPrefix}}{{.StructInfo.Type}}, count int64, err error) {
 	result, err = {{.S}}.Offset(offset).Limit(limit).Find()
 	if err != nil{
 		return
@@ -250,7 +250,7 @@ func ({{.S}} {{.QueryStructName}}Do) Scan(result interface{}) (err error) {
 	return {{.S}}.DO.Scan(result)
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Delete(models ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) (result gen.ResultInfo, err error) {
+func ({{.S}} {{.QueryStructName}}Do) Delete(models ...*{{.StructPkgPrefix}}{{.StructInfo.Type}}) (result gen.ResultInfo, err error) {
 	return {{.S}}.DO.Delete(models)
 }
 
@@ -265,9 +265,9 @@ func ({{.S}} *{{.QueryStructName}}Do) withDO(do gen.Dao) (*{{.QueryStructName}}D
 const CRUDMethodTest = `
 func init() {
 	InitializeDB()
-	err := _gen_test_db.AutoMigrate(&{{.StructInfo.Package}}.{{.ModelStructName}}{})
+	err := _gen_test_db.AutoMigrate(&{{.StructPkgPrefix}}{{.ModelStructName}}{})
 	if err != nil{
-		fmt.Printf("Error: AutoMigrate(&{{.StructInfo.Package}}.{{.ModelStructName}}{}) fail: %s", err)
+		fmt.Printf("Error: AutoMigrate(&{{.StructPkgPrefix}}{{.ModelStructName}}{}) fail: %s", err)
 	}
 }
 
@@ -287,17 +287,17 @@ func Test_{{.QueryStructName}}Query(t *testing.T) {
 		t.Error("GetFieldByName(\"\") from {{.QueryStructName}} success")
 	}
 
-	err = _do.Create(&{{.StructInfo.Package}}.{{.ModelStructName}}{})
+	err = _do.Create(&{{.StructPkgPrefix}}{{.ModelStructName}}{})
 	if err != nil {
 		t.Error("create item in table <{{.TableName}}> fail:", err)
 	}
 
-	err = _do.Save(&{{.StructInfo.Package}}.{{.ModelStructName}}{})
+	err = _do.Save(&{{.StructPkgPrefix}}{{.ModelStructName}}{})
 	if err != nil {
 		t.Error("create item in table <{{.TableName}}> fail:", err)
 	}
 
-	err = _do.CreateInBatches([]*{{.StructInfo.Package}}.{{.ModelStructName}}{ {}, {} }, 10)
+	err = _do.CreateInBatches([]*{{.StructPkgPrefix}}{{.ModelStructName}}{ {}, {} }, 10)
 	if err != nil {
 		t.Error("create item in table <{{.TableName}}> fail:", err)
 	}
@@ -322,7 +322,7 @@ func Test_{{.QueryStructName}}Query(t *testing.T) {
 		t.Error("FindInBatch() on table <{{.TableName}}> fail:", err)
 	}
 
-	err = _do.Where(primaryKey.IsNotNull()).FindInBatches(&[]*{{.StructInfo.Package}}.{{.ModelStructName}}{}, 10, func(tx gen.Dao, batch int) error { return nil })
+	err = _do.Where(primaryKey.IsNotNull()).FindInBatches(&[]*{{.StructPkgPrefix}}{{.ModelStructName}}{}, 10, func(tx gen.Dao, batch int) error { return nil })
 	if err != nil {
 		t.Error("FindInBatches() on table <{{.TableName}}> fail:", err)
 	}
@@ -356,7 +356,7 @@ func Test_{{.QueryStructName}}Query(t *testing.T) {
 	if err != nil {
 		t.Error("FindByPage() on table <{{.TableName}}> fail:", err)
 	}
-	_, err = _do.ScanByPage(&{{.StructInfo.Package}}.{{.ModelStructName}}{}, 0, 1)
+	_, err = _do.ScanByPage(&{{.StructPkgPrefix}}{{.ModelStructName}}{}, 0, 1)
 	if err != nil {
 		t.Error("ScanByPage() on table <{{.TableName}}> fail:", err)
 	}

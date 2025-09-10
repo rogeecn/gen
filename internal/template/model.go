@@ -5,12 +5,14 @@ const Model = NotEditMark + `
 package {{.StructInfo.Package}}
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+	"go.ipao.vip/gen"
 	{{range .ImportPkgPaths}}{{.}} ` + "\n" + `{{end}}
 )
 
@@ -28,6 +30,19 @@ type {{.ModelStructName}} struct {
 	"{{if not .MultilineComment}}{{if .ColumnComment}}// {{.ColumnComment}}{{end}}{{end}}" +
 	`{{end}}
 }
+
+// Quick operations without importing query package
+// Update applies changed fields to the database using the default DB.
+func (m *{{.ModelStructName}}) Update(ctx context.Context) (gen.ResultInfo, error) { return Q.{{.ModelStructName}}.WithContext(ctx).Updates(m) }
+
+// Save upserts the model using the default DB.
+func (m *{{.ModelStructName}}) Save(ctx context.Context) error { return Q.{{.ModelStructName}}.WithContext(ctx).Save(m) }
+
+// Create inserts the model using the default DB.
+func (m *{{.ModelStructName}}) Create(ctx context.Context) error { return Q.{{.ModelStructName}}.WithContext(ctx).Create(m) }
+
+// Delete removes the row represented by the model using the default DB.
+func (m *{{.ModelStructName}}) Delete(ctx context.Context) (gen.ResultInfo, error) { return Q.{{.ModelStructName}}.WithContext(ctx).Delete(m) }
 
 `
 

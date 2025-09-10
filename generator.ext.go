@@ -13,16 +13,18 @@ import (
 )
 
 func DefaultConfig() Config {
-	cfg := Config{
-		OutPath:          "./database/queries",
+    cfg := Config{
+		OutPath:          "./database",
 		Mode:             WithDefaultQuery,
 		OutFile:          "query.gen.go",
 		FieldSignable:    true,
 		FieldWithTypeTag: true,
-	}
-	cfg.WithImportPkgPath("go.ipao.vip/gen/types")
+    }
+    // Co-locate models and queries in the same directory by default
+    cfg.ModelPkgPath = cfg.OutPath
+    cfg.WithImportPkgPath("go.ipao.vip/gen/types")
 
-	return cfg
+    return cfg
 }
 
 type ConfigOptRelation struct {

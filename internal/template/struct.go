@@ -41,7 +41,7 @@ const (
 		_{{.QueryStructName}} := {{.QueryStructName}}{}
 
 		_{{.QueryStructName}}.{{.QueryStructName}}Do.UseDB(db,opts...)
-		_{{.QueryStructName}}.{{.QueryStructName}}Do.UseModel(&{{.StructInfo.Package}}.{{.StructInfo.Type}}{})
+		_{{.QueryStructName}}.{{.QueryStructName}}Do.UseModel(&{{.StructPkgPrefix}}{{.StructInfo.Type}}{})
 
 		tableName := _{{.QueryStructName}}.{{.QueryStructName}}Do.TableName()
 		_{{$.QueryStructName}}.ALL = field.NewAsterisk(tableName)
@@ -180,17 +180,17 @@ type I{{.ModelStructName}}Do interface {
 	Count() (count int64, err error)
 	Scopes(funcs ...func(gen.Dao) gen.Dao) I{{.ModelStructName}}Do
 	Unscoped() I{{.ModelStructName}}Do
-	Create(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error
-	CreateInBatches(values []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int) error
-	Save(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error
-	First() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	Take() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	Last() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	Find() ([]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, err error)
-	FindInBatches(result *[]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int, fc func(tx gen.Dao, batch int) error) error
+	Create(values ...*{{.StructPkgPrefix}}{{.StructInfo.Type}}) error
+	CreateInBatches(values []*{{.StructPkgPrefix}}{{.StructInfo.Type}}, batchSize int) error
+	Save(values ...*{{.StructPkgPrefix}}{{.StructInfo.Type}}) error
+	First() (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error)
+	Take() (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error)
+	Last() (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error)
+	Find() ([]*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error)
+	FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*{{.StructPkgPrefix}}{{.StructInfo.Type}}, err error)
+	FindInBatches(result *[]*{{.StructPkgPrefix}}{{.StructInfo.Type}}, batchSize int, fc func(tx gen.Dao, batch int) error) error
 	Pluck(column field.Expr, dest interface{}) error
-	Delete(...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) (info gen.ResultInfo, err error)
+	Delete(...*{{.StructPkgPrefix}}{{.StructInfo.Type}}) (info gen.ResultInfo, err error)
 	Update(column field.Expr, value interface{}) (info gen.ResultInfo, err error)
 	UpdateSimple(columns ...field.AssignExpr) (info gen.ResultInfo, err error)
 	Updates(value interface{}) (info gen.ResultInfo, err error)
@@ -254,7 +254,7 @@ func (a {{$.QueryStructName}}{{$relationship}}{{$relation.Name}}) Session(sessio
 	return &a
 }
 
-func (a {{$.QueryStructName}}{{$relationship}}{{$relation.Name}}) Model(m *{{$.StructInfo.Package}}.{{$.StructInfo.Type}}) *{{$.QueryStructName}}{{$relationship}}{{$relation.Name}}Tx {
+func (a {{$.QueryStructName}}{{$relationship}}{{$relation.Name}}) Model(m *{{$.StructPkgPrefix}}{{$.StructInfo.Type}}) *{{$.QueryStructName}}{{$relationship}}{{$relation.Name}}Tx {
 	return &{{$.QueryStructName}}{{$relationship}}{{$relation.Name}}Tx{a.db.Model(m).Association(a.Name())}
 }
 

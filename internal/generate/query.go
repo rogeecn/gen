@@ -40,6 +40,14 @@ type QueryStructMeta struct {
 	ModelMethods    []*parser.Method // user custom method bind to db base struct
 
 	interfaceMode bool
+
+	// StructPkgPrefix is the prefix used when referencing the model type in generated code.
+	// For example, "model." when queries are in a different package; empty when in the same package.
+	StructPkgPrefix string
+	// TopName is the identifier used for exported query handles/vars/fields in the query entry.
+	// Usually the model struct name (e.g., "User"). When generating queries in the same
+	// package as models, this can be set to "UserQuery" to avoid name conflicts.
+	TopName string
 }
 
 // parseStruct get all elements of struct with gorm's Parse, ignore unexported elements

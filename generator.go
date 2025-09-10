@@ -19,6 +19,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 
+	"go.ipao.vip/gen/field"
 	"go.ipao.vip/gen/helper"
 	"go.ipao.vip/gen/internal/generate"
 	"go.ipao.vip/gen/internal/model"
@@ -395,19 +396,57 @@ func (g *Generator) generateQueryFile() (err error) {
 
 // generateSingleQueryFile generate query code and save to file
 func (g *Generator) generateSingleQueryFile(data *genInfo) (err error) {
-	var buf bytes.Buffer
+    var buf bytes.Buffer
 
-	structPkgPath := data.StructInfo.PkgPath
-	if structPkgPath == "" {
-		structPkgPath = g.modelPkgPath
-	}
-	err = render(tmpl.Header, &buf, map[string]interface{}{
-		"Package": g.queryPkgName,
-		"ImportPkgPaths": importList.Add(g.importPkgPaths...).
-			Add(structPkgPath).
-			Add(getImportPkgPaths(data)...).
-			Paths(),
-	})
+    structPkgPath := data.StructInfo.PkgPath
+    if structPkgPath == "" {
+        structPkgPath = g.modelPkgPath
+    }
+    // Detect if generating into the same package as models
+    samePkg := g.queryPkgName == data.StructInfo.Package
+    if samePkg {
+        // Avoid self-import
+        structPkgPath = ""
+        // Export query struct name to avoid collision and allow direct model references
+        data.QueryStructMeta.QueryStructName = data.QueryStructMeta.QueryStructName + "Query"
+        data.QueryStructMeta.TopName = data.ModelStructName + "Query"
+        data.QueryStructMeta.StructPkgPrefix = ""
+        // Trim relation type package prefix for same-package codegen
+        for _, f := range data.Fields {
+            if f.IsRelation() && f.Relation != nil {
+                // Rebuild relation with trimmed type recursively
+                var rebuild func(r field.Relation) field.Relation
+                rebuild = func(r field.Relation) field.Relation {
+                    t := r.Type()
+                    pkgPrefix := data.StructInfo.Package + "."
+                    if strings.HasPrefix(t, pkgPrefix) {
+                        t = strings.TrimPrefix(t, pkgPrefix)
+                    }
+                    children := r.ChildRelations()
+                    rebuiltChildren := make([]field.Relation, len(children))
+                    for i, c := range children {
+                        rebuiltChildren[i] = rebuild(c)
+                    }
+                    nr := field.NewRelationWithType(r.Relationship(), r.Name(), t, rebuiltChildren...)
+                    return *nr
+                }
+                r := rebuild(*f.Relation)
+                f.Relation = &r
+            }
+        }
+    } else {
+        data.QueryStructMeta.TopName = data.ModelStructName
+        if data.StructInfo.Package != "" {
+            data.QueryStructMeta.StructPkgPrefix = data.StructInfo.Package + "."
+        }
+    }
+    err = render(tmpl.Header, &buf, map[string]interface{}{
+        "Package": g.queryPkgName,
+        "ImportPkgPaths": importList.Add(g.importPkgPaths...).
+            Add(structPkgPath).
+            Add(getImportPkgPaths(data)...).
+            Paths(),
+    })
 	if err != nil {
 		return err
 	}
@@ -442,8 +481,13 @@ func (g *Generator) generateSingleQueryFile(data *genInfo) (err error) {
 		return err
 	}
 
-	defer g.info(fmt.Sprintf("generate query file: %s%s%s.gen.go", g.OutPath, string(os.PathSeparator), data.FileName))
-	return g.output(fmt.Sprintf("%s%s%s.gen.go", g.OutPath, string(os.PathSeparator), data.FileName), buf.Bytes())
+	// Use distinct filename when model and query co-locate to avoid collisions
+	outName := fmt.Sprintf("%s.gen.go", data.FileName)
+	if g.queryPkgName == data.StructInfo.Package { // same package
+		outName = fmt.Sprintf("%s.query.gen.go", data.FileName)
+	}
+	defer g.info(fmt.Sprintf("generate query file: %s%s%s", g.OutPath, string(os.PathSeparator), outName))
+	return g.output(fmt.Sprintf("%s%s%s", g.OutPath, string(os.PathSeparator), outName), buf.Bytes())
 }
 
 // generateQueryUnitTestFile generate unit test file for query
