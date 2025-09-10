@@ -13,18 +13,18 @@ import (
 )
 
 func DefaultConfig() Config {
-    cfg := Config{
+	cfg := Config{
 		OutPath:          "./database",
 		Mode:             WithDefaultQuery,
 		OutFile:          "query.gen.go",
 		FieldSignable:    true,
 		FieldWithTypeTag: true,
-    }
-    // Co-locate models and queries in the same directory by default
-    cfg.ModelPkgPath = cfg.OutPath
-    cfg.WithImportPkgPath("go.ipao.vip/gen/types")
+	}
+	// Co-locate models and queries in the same directory by default
+	cfg.ModelPkgPath = cfg.OutPath
+	cfg.WithImportPkgPath("go.ipao.vip/gen/types")
 
-    return cfg
+	return cfg
 }
 
 type ConfigOptRelation struct {
@@ -36,12 +36,6 @@ type ConfigOptRelation struct {
 	JoinForeignKey string `yaml:"join_foreign_key"`
 	JoinReferences string `yaml:"join_references"`
 	Json           string `yaml:"json"`
-
-	Options *struct {
-		RelatePointer      bool `yaml:"relate_pointer"`
-		RelateSlice        bool `yaml:"relate_slice"`
-		RelateSlicePointer bool `yaml:"relate_slice_pointer"`
-	} `yaml:"options"`
 }
 
 func (c *ConfigOptRelation) Config(db *gorm.DB) *field.RelateConfig {
