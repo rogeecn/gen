@@ -39,9 +39,6 @@ type ConfigOptRelation struct {
 }
 
 func (c *ConfigOptRelation) Config(db *gorm.DB) *field.RelateConfig {
-	if c.Relation != string(field.Many2Many) && (len(c.ForeignKey) == 0 || len(c.References) == 0) {
-		panic(fmt.Errorf("foreign_key and references must be set for relation %s", c.Relation))
-	}
 	opt := &field.RelateConfig{}
 
 	var f func(string) string
