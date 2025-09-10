@@ -226,27 +226,24 @@ imports:
 field_type:
   comprehensive_types_table:
     json_val: types.JSONType[dto.Test]
-# `User` belongs to `Company`, `User.CompanyID` is the foreign key
-# User has one CreditCard, CreditCard.UserID is the foreign key
-# User has many CreditCards, CreditCard.UserID is the foreign key
 field_relate:
   students:
     Class:
       # belong_to, has_one, has_many, many_to_many
       relation: belongs_to
       table: classes
-      references: id # 关联表ID
-      foreign_key: class_id # 当前表ID
+      references: id # 关联表的主键/被引用键（通常是 id）
+      foreign_key: class_id # 当前表上的外键列（如 students.class_id）
       Json: class
     Teachers:
       # belong_to, has_one, has_many, many_to_many
       relation: many_to_many
       table: teachers
       pivot: class_teacher
-      foreign_key: class_id # 当前表ID
-      join_foreign_key: class_id # 关联中间表ID
-      references: id # 关联表ID
-      join_references: teacher_id # 关联跳转表ID
+      foreign_key: class_id # 当前表（students）用于关联的键（转为结构体字段名 ClassID）
+      join_foreign_key: class_id # 中间表中指向当前表的列（class_teacher.class_id）
+      references: id # 关联表（teachers）被引用的列（转为结构体字段名 ID）
+      join_references: teacher_id # 中间表中指向关联表的列（class_teacher.teacher_id）
       Json: teachers
   teachers:
     Classes:
@@ -260,6 +257,76 @@ field_relate:
       pivot: class_teacher
 ```
 
+### 关联关系字段说明（对齐 GORM）
+
+- relation
+
+  - 取值：`belongs_to`、`has_one`、`has_many`、`many_to_many`。
+  - 对应 GORM 的四种关系：Belongs To、Has One、Has Many、Many2Many。
+
+- table
+
+  - 关联的目标表名（即另一侧模型对应的表）。
+
+- pivot（仅 many_to_many）
+
+  - 多对多中间表名称，对应 GORM 标签 `many2many:<pivot>`。
+
+- foreign_key（按关系含义不同）
+
+  - 对应 GORM 标签 `foreignKey:<Field>`。
+  - belongs_to：当前表上的外键列（例如 `students.class_id`），会映射为当前模型上的字段（如 `ClassID`）。
+  - has_one / has_many：外键在对端表上（例如 `credit_cards.user_id`）。配置时仍在当前表的配置块里填“外键列名”，生成时会正确落到 GORM 标签中。
+
+- references（按关系含义不同）
+
+  - 对应 GORM 标签 `references:<Field>`。
+  - belongs_to：对端表被引用的列（一般是 `id`），映射为对端模型字段名（如 `ID`）。
+  - has_one / has_many：被对端外键引用的当前模型列（一般是当前模型的 `ID` 字段）。
+
+- join_foreign_key（仅 many_to_many）
+
+  - 对应 GORM 标签 `joinForeignKey:<Field>`，指中间表里“指向当前模型”的列（如 `class_teacher.class_id`）。
+
+- join_references（仅 many_to_many）
+  - 对应 GORM 标签 `joinReferences:<Field>`，指中间表里“指向关联模型”的列（如 `class_teacher.teacher_id`）。
+
+说明：生成器会结合数据库的 NamingStrategy 将列名（如 `class_id`、`teacher_id`）转换为结构体字段名（如 `ClassID`、`TeacherID`），并据此写入正确的 GORM 标签。
+
+### 与 GORM 标签的对应关系
+
+- belongs_to 示例（students → classes）
+
+  - YAML：
+    - `foreign_key: class_id`
+    - `references: id`
+  - 生成的模型字段（示意）：
+    - `Class Class  gorm:"foreignKey:ClassID;references:ID"`
+
+- has_many 示例（users → credit_cards）
+
+  - YAML（在 `users` 下配置 `CreditCards` 关系）：
+    - `relation: has_many`
+    - `table: credit_cards`
+    - `foreign_key: user_id` （对端表上的外键列）
+    - `references: id` （当前模型被引用的列）
+  - 生成的模型字段（示意）：
+    - `CreditCards []CreditCard gorm:"foreignKey:UserID;references:ID"`
+
+- many_to_many 示例（students ⇄ teachers，经由 class_teacher）
+  - YAML（在 `students` 下配置 `Teachers` 关系）：
+    - `relation: many_to_many`
+    - `table: teachers`
+    - `pivot: class_teacher`
+    - `foreign_key: class_id`
+    - `join_foreign_key: class_id`
+    - `references: id`
+    - `join_references: teacher_id`
+  - 生成的模型字段（示意）：
+    - `Teachers []Teacher gorm:"many2many:class_teacher;foreignKey:ClassID;references:ID;joinForeignKey:ClassID;joinReferences:TeacherID"`
+
+提示：GORM 在 many2many 下允许省略部分键，生成器也支持“只给必要字段”。若不确定，建议显式全部写出，避免命名不一致导致推断失败。
+
 ## 快速生成
 
 ```go
@@ -269,5 +336,5 @@ field_relate:
 		log.Fatal(err)
 	}
 
-	gen.GenerateWithDefault(db, "")
+	gen.GenerateWithDefault(db, ".transform.yaml")
 ```
