@@ -37,12 +37,13 @@ if err != nil {
 }
 ```
 
-### 3. 创建 Generator 并生成代码
+### 3. 创建 Generator 并生成代码（同包同目录生成，默认推荐）
 
 ```go
 g := gen.NewGenerator(gen.Config{
-  OutPath:      "./dao/query",
-  ModelPkgPath: "./dao/model",
+  // 将 model 与 query 代码生成到同一目录（同一包），便于直接调用
+  OutPath:      "./database",
+  ModelPkgPath: "./database", // 与 OutPath 一致即可（默认也是同包同目录）
   // 其它配置项见下文
 })
 g.UseDB(db)
@@ -81,8 +82,8 @@ g.Execute()          // 输出代码到 OutPath
 
 ## 代码生成配置项
 
-- `OutPath`：生成代码输出目录
-- `ModelPkgPath`：生成 model 代码的包名
+- `OutPath`：生成代码输出目录（推荐与 `ModelPkgPath` 相同，实现“同包同目录生成”）
+- `ModelPkgPath`：model 代码输出目录（同包时与 `OutPath` 一致）
 - `WithUnitTest`：是否生成单元测试
 - `FieldNullable`：数据库可空字段是否生成指针
 - `FieldCoverable`：有默认值字段是否生成指针
@@ -119,7 +120,7 @@ g.Execute()          // 输出代码到 OutPath
 
 以下示例带你从零到一，完成连接数据库、生成代码，并在业务代码中以类型安全的方式进行查询。
 
-1. 连接 PostgreSQL 并创建 Generator
+1. 连接 PostgreSQL 并创建 Generator（同包同目录）
 
 ```go
 import (
@@ -133,8 +134,8 @@ db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 if err != nil { panic(err) }
 
 g := gen.NewGenerator(gen.Config{
-    OutPath:      "./dao/query", // 查询代码输出目录
-    ModelPkgPath: "./dao/model", // model 结构体输出目录
+    OutPath:      "./database",   // 查询与模型生成到同一目录（同一包）
+    ModelPkgPath: "./database",
 })
 g.UseDB(db)
 ```
@@ -149,34 +150,48 @@ g.GenerateModel("users")
 g.Execute()
 ```
 
-3. 在业务代码中使用生成的查询
+3. 在业务代码中使用生成的查询（同包同目录）
 
-假设已生成包 `dao/query` 与 `dao/model`：
+生成包为 `your/module/database`：
 
 ```go
 import (
-  q "your/module/dao/query"
+  dbpkg "your/module/database"
 )
 
-qry := q.Use(db)      // 构造 Query 入口
-u := qry.Users        // 获取 users 的查询句柄（字段名与生成的 Model 名匹配）
+// 全局初始化一次（设置默认 Query 入口与包级快捷变量）
+dbpkg.SetDefault(db)
 
-// 3.1 基础查询
-user, err := u.Where(u.ID.Eq(1)).First()
-list, err := u.Where(u.Age.Gt(18)).Order(u.ID.Desc()).Limit(20).Find()
+// 方式A：使用包级变量（更短的调用链）
+tbl, q := dbpkg.StudentQuery.QueryContext(ctx)
+stu, err := q.Where(tbl.ID.Eq(1)).First()
 
-// 3.2 统计与分页
-count, err := u.Where(u.Famous.Is(true)).Count()
-page, total, err := u.Where(u.Score.Gte(90)).FindByPage(0, 10)
+// 方式B：使用全局 Q（字段名无 Query 后缀）
+tbl2, q2 := dbpkg.Q.Student.QueryContext(ctx)
+list, err := q2.Where(tbl2.Age.Gt(18)).Order(tbl2.ID.Desc()).Limit(20).Find()
 
-// 3.3 JOIN（示例：student LEFT JOIN teacher）
-// 需要在生成器中包含 student/teacher 两个表
-student := qry.Student
-teacher := qry.Teacher
+// 统计与分页
+count, err := q2.Where(tbl2.Famous.Is(true)).Count()
+page, total, err := q2.Where(tbl2.Score.Gte(90)).FindByPage(0, 10)
+
+// JOIN 示例（需要已生成 Student/Teacher 两个表）
+student := dbpkg.Q.Student
+teacher := dbpkg.Q.Teacher
 rows, err := student.LeftJoin(teacher, student.Instructor.EqCol(teacher.ID)).
     Where(teacher.ID.Gt(0)).
     Select(student.Name, teacher.Name.As("teacher_name")).
     Find()
+```
+
+4. 模型实例快捷操作（同包调用，无需引入 query 包）
+
+```go
+stu.Name = "Alice"
+// Update/Save/Create/Delete 直接调用同包下的查询入口
+_, err := stu.Update(ctx)
+err := stu.Save(ctx)
+err := stu.Create(ctx)
+_, err := stu.Delete(ctx)
 ```
 
 4. JSON/时间等 PostgreSQL 类型的使用
@@ -331,10 +346,95 @@ field_relate:
 
 ```go
   var dsn = "host=host user=postgres password=password dbname=test port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}))
-	if err != nil {
-		log.Fatal(err)
-	}
+  db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}))
+  if err != nil { log.Fatal(err) }
 
-	gen.GenerateWithDefault(db, ".transform.yaml")
+  // 默认采用“同包同目录生成”：OutPath 与 ModelPkgPath 一致，文件统一生成到 ./database
+  gen.GenerateWithDefault(db, ".transform.yaml")
+
+  // 初始化默认入口与包级变量（StudentQuery/TeacherQuery 等）
+  yourpkg/database.SetDefault(db)
+
+## 最小完整示例（目录结构 + 代码）
+
+以下示例演示一个最小可运行流程：连接数据库 → 生成代码（同包同目录）→ 在业务代码中直接查询。
+
+1) 生成代码（同包同目录）
+
+main.go（仅用于生成）：
+
+```go
+package main
+
+import (
+    "log"
+    "go.ipao.vip/gen"
+    "gorm.io/driver/postgres"
+    "gorm.io/gorm"
+)
+
+func main() {
+    dsn := "host=127.0.0.1 user=postgres password=postgres dbname=demo port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+    db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn}))
+    if err != nil { log.Fatal(err) }
+
+    // 默认同包同目录生成到 ./database
+    gen.GenerateWithDefault(db, ".transform.yaml")
+}
+```
+
+执行：
+
+```bash
+go run main.go
+```
+
+生成后的目录（示意）：
+
+```
+database/
+  classes.gen.go
+  classes.query.gen.go
+  class_teacher.gen.go
+  class_teacher.query.gen.go
+  students.gen.go
+  students.query.gen.go
+  teachers.gen.go
+  teachers.query.gen.go
+  query.gen.go            # 入口（提供 Q 与包级 StudentQuery/TeacherQuery 等）
+```
+
+2) 业务代码中使用
+
+```go
+package svc
+
+import (
+    dbpkg "your/module/database"
+    "gorm.io/gorm"
+)
+
+func Init(db *gorm.DB) {
+    dbpkg.SetDefault(db)
+}
+
+func FindStudent(id int32) (*dbpkg.Student, error) {
+    tbl, q := dbpkg.StudentQuery.QueryContext(nil)
+    return q.Where(tbl.ID.Eq(id)).First()
+}
+
+func UpdateStudentName(id int32, name string) error {
+    // 通过 Q.Student 也可以调用（Query 字段无后缀）
+    tbl, q := dbpkg.Q.Student.QueryContext(nil)
+    _, err := q.Where(tbl.ID.Eq(id)).Update(tbl.Name, name)
+    return err
+}
+
+func SaveStudent(m *dbpkg.Student) error { return m.Save(nil) }
+```
+
+说明：
+
+- 包级变量（如 `StudentQuery`）指向 `Q.Student`，提供更短的调用链。
+- 模型实例方法（Update/Save/Create/Delete）无需导入查询包，直接在同包内调用。
 ```
