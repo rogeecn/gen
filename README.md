@@ -354,12 +354,13 @@ field_relate:
 
   // 初始化默认入口与包级变量（StudentQuery/TeacherQuery 等）
   yourpkg/database.SetDefault(db)
+```
 
 ## 最小完整示例（目录结构 + 代码）
 
 以下示例演示一个最小可运行流程：连接数据库 → 生成代码（同包同目录）→ 在业务代码中直接查询。
 
-1) 生成代码（同包同目录）
+1. 生成代码（同包同目录）
 
 main.go（仅用于生成）：
 
@@ -404,7 +405,7 @@ database/
   query.gen.go            # 入口（提供 Q 与包级 StudentQuery/TeacherQuery 等）
 ```
 
-2) 业务代码中使用
+2. 业务代码中使用
 
 ```go
 package svc
@@ -437,4 +438,3 @@ func SaveStudent(m *dbpkg.Student) error { return m.Save(nil) }
 
 - 包级变量（如 `StudentQuery`）指向 `Q.Student`，提供更短的调用链。
 - 模型实例方法（Update/Save/Create/Delete）无需导入查询包，直接在同包内调用。
-```
