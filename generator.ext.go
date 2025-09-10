@@ -14,7 +14,7 @@ import (
 
 func DefaultConfig() Config {
 	cfg := Config{
-		OutPath:          "./database",
+		OutPath:          "./database/query",
 		Mode:             WithDefaultQuery,
 		OutFile:          "query.gen.go",
 		FieldSignable:    true,
