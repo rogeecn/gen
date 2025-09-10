@@ -14,7 +14,7 @@ import (
 
 func DefaultConfig() Config {
 	cfg := Config{
-		OutPath:          "./database/query",
+		OutPath:          "./database/queries",
 		Mode:             WithDefaultQuery,
 		OutFile:          "query.gen.go",
 		FieldSignable:    true,
@@ -26,12 +26,14 @@ func DefaultConfig() Config {
 }
 
 type ConfigOptRelation struct {
-	Relation   string `yaml:"relation"`
-	Table      string `yaml:"table"`
-	Pivot      string `yaml:"pivot"`
-	ForeignKey string `yaml:"foreign_key"`
-	References string `yaml:"references"`
-	Json       string `yaml:"json"`
+	Relation       string `yaml:"relation"`
+	Table          string `yaml:"table"`
+	Pivot          string `yaml:"pivot"`
+	ForeignKey     string `yaml:"foreign_key"`
+	References     string `yaml:"references"`
+	JoinForeignKey string `yaml:"join_foreign_key"`
+	JoinReferences string `yaml:"join_references"`
+	Json           string `yaml:"json"`
 
 	Options *struct {
 		RelatePointer      bool `yaml:"relate_pointer"`
@@ -57,22 +59,30 @@ func (c *ConfigOptRelation) Config(db *gorm.DB) *field.RelateConfig {
 	}
 
 	opt.GORMTag = field.GormTag(map[string][]string{})
-	if c.Relation != string(field.Many2Many) {
-		opt.GORMTag["foreignKey"] = []string{f(c.ForeignKey)}
-		opt.GORMTag["references"] = []string{f(c.References)}
-	} else {
+	if c.Relation == string(field.Many2Many) {
 		opt.GORMTag["many2many"] = []string{c.Pivot}
+	}
+
+	if c.ForeignKey != "" {
+		opt.GORMTag["foreignKey"] = []string{f(c.ForeignKey)}
+	}
+
+	if c.References != "" {
+		opt.GORMTag["references"] = []string{f(c.References)}
+	}
+
+	if c.JoinForeignKey != "" {
+		opt.GORMTag["joinForeignKey"] = []string{f(c.JoinForeignKey)}
+	}
+
+	if c.JoinReferences != "" {
+		opt.GORMTag["joinReferences"] = []string{f(c.JoinReferences)}
 	}
 
 	if c.Json != "" {
 		opt.JSONTag = c.Json
 	}
-
-	if c.Options != nil {
-		opt.RelatePointer = c.Options.RelatePointer
-		opt.RelateSlice = c.Options.RelateSlice
-		opt.RelateSlicePointer = c.Options.RelateSlicePointer
-	}
+	opt.RelatePointer = true
 
 	return opt
 }

@@ -276,16 +276,11 @@ type RelateConfig struct {
 
 // RelateFieldPrefix return generated relation field's type
 func (c *RelateConfig) RelateFieldPrefix(relationshipType RelationshipType) string {
-	switch {
-	case c.RelatePointer:
-		return "*"
-	case c.RelateSlice:
-		return "[]"
-	case c.RelateSlicePointer:
-		return "[]*"
-	default:
-		return defaultRelationshipPrefix[relationshipType]
+	prefix, _ := defaultRelationshipPrefix[relationshipType]
+	if c.RelatePointer {
+		return prefix + "*"
 	}
+	return prefix
 }
 
 func (c *RelateConfig) GetTag(fieldName string) Tag {
@@ -301,6 +296,11 @@ func (c *RelateConfig) GetTag(fieldName string) Tag {
 	if c.JSONTag == "" {
 		c.JSONTag = ns.ColumnName("", fieldName)
 	}
+	// json omitempty
+	if !strings.Contains(c.JSONTag, "omitempty") {
+		c.JSONTag += ",omitempty"
+	}
+
 	c.Tag.Set(TagKeyJson, c.JSONTag)
 	return c.Tag
 }

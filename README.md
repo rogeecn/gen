@@ -226,14 +226,28 @@ imports:
 field_type:
   comprehensive_types_table:
     json_val: types.JSONType[dto.Test]
+# `User` belongs to `Company`, `User.CompanyID` is the foreign key
+# User has one CreditCard, CreditCard.UserID is the foreign key
+# User has many CreditCards, CreditCard.UserID is the foreign key
 field_relate:
   students:
     Class:
       # belong_to, has_one, has_many, many_to_many
       relation: belongs_to
       table: classes
-      references: class_id # current table field
-      foreign_key: id # foreign table field
+      references: id # 关联表ID
+      foreign_key: class_id # 当前表ID
+      Json: class
+    Teachers:
+      # belong_to, has_one, has_many, many_to_many
+      relation: many_to_many
+      table: teachers
+      pivot: class_teacher
+      foreign_key: class_id # 当前表ID
+      join_foreign_key: class_id # 关联中间表ID
+      references: id # 关联表ID
+      join_references: teacher_id # 关联跳转表ID
+      Json: teachers
   teachers:
     Classes:
       relation: many_to_many
