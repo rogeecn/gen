@@ -44,6 +44,28 @@ func (m *{{.ModelStructName}}) Create(ctx context.Context) error { return Q.{{.M
 // Delete removes the row represented by the model using the default DB.
 func (m *{{.ModelStructName}}) Delete(ctx context.Context) (gen.ResultInfo, error) { return Q.{{.ModelStructName}}.WithContext(ctx).Delete(m) }
 
+// ForceDelete permanently deletes the row (ignores soft delete) using the default DB.
+func (m *{{.ModelStructName}}) ForceDelete(ctx context.Context) (gen.ResultInfo, error) {
+    return Q.{{.ModelStructName}}.WithContext(ctx).Unscoped().Delete(m)
+}
+
+{{if and .HasPrimaryKey .HasSoftDelete -}}
+// Restore sets deleted_at to NULL for this model's primary key using the default DB.
+func (m *{{.ModelStructName}}) Restore(ctx context.Context) (gen.ResultInfo, error) {
+    return Q.{{.ModelStructName}}.WithContext(ctx).RestoreByID(m.{{.PrimaryFieldName}})
+}
+{{- end}}
+
+{{if .HasPrimaryKey -}}
+// Reload reloads the model from database by its primary key and overwrites current fields.
+func (m *{{.ModelStructName}}) Reload(ctx context.Context) error {
+    fresh, err := Q.{{.ModelStructName}}.WithContext(ctx).GetByID(m.{{.PrimaryFieldName}})
+    if err != nil { return err }
+    *m = *fresh
+    return nil
+}
+{{- end}}
+
 `
 
 // ModelMethod model struct DIY method
