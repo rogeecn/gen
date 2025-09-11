@@ -209,6 +209,7 @@ type I{{.ModelStructName}}Do interface {
 	Rows() (*sql.Rows, error)
 	Row() *sql.Row
 	Scan(result interface{}) (err error)
+	Exists(conds ...gen.Condition) (bool, error)
 	Returning(value interface{}, columns ...string) I{{.ModelStructName}}Do
 	UnderlyingDB() *gorm.DB
 	schema.Tabler
@@ -216,6 +217,13 @@ type I{{.ModelStructName}}Do interface {
 	{{range .Interfaces -}}
 	{{.FuncSign}}
 	{{end}}
+
+{{if .HasPrimaryKey}}
+	GetByID(id {{.PrimaryGoType}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
+	GetByIDs(ids ...{{.PrimaryGoType}}) ([]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
+	DeleteByID(id {{.PrimaryGoType}}) (info gen.ResultInfo, err error)
+	DeleteByIDs(ids ...{{.PrimaryGoType}}) (info gen.ResultInfo, err error)
+{{end}}
 
 }
 `

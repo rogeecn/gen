@@ -254,6 +254,47 @@ func ({{.S}} {{.QueryStructName}}Do) Delete(models ...*{{.StructPkgPrefix}}{{.St
 	return {{.S}}.DO.Delete(models)
 }
 
+// Exists returns true if any record matches the given conditions.
+func ({{.S}} {{.QueryStructName}}Do) Exists(conds ...gen.Condition) (bool, error) {
+    cnt, err := {{.S}}.Where(conds...).Count()
+    if err != nil {
+        return false, err
+    }
+    return cnt > 0, nil
+}
+
+{{if .HasPrimaryKey}}
+// GetByID finds a single record by primary key.
+func ({{.S}} {{.QueryStructName}}Do) GetByID(id {{.PrimaryGoType}}) (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error) {
+    pk := field.New{{.PrimaryFieldGenType}}({{.S}}.TableName(), "{{.PrimaryFieldColumn}}")
+    return {{.S}}.Where(pk.Eq(id)).First()
+}
+
+// GetByIDs finds records by primary key list.
+func ({{.S}} {{.QueryStructName}}Do) GetByIDs(ids ...{{.PrimaryGoType}}) ([]*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error) {
+    if len(ids) == 0 {
+        return []*{{.StructPkgPrefix}}{{.StructInfo.Type}}{}, nil
+    }
+    pk := field.New{{.PrimaryFieldGenType}}({{.S}}.TableName(), "{{.PrimaryFieldColumn}}")
+    return {{.S}}.Where(pk.In(ids...)).Find()
+}
+
+// DeleteByID deletes records by primary key.
+func ({{.S}} {{.QueryStructName}}Do) DeleteByID(id {{.PrimaryGoType}}) (gen.ResultInfo, error) {
+    pk := field.New{{.PrimaryFieldGenType}}({{.S}}.TableName(), "{{.PrimaryFieldColumn}}")
+    return {{.S}}.Where(pk.Eq(id)).Delete()
+}
+
+// DeleteByIDs deletes records by a list of primary keys.
+func ({{.S}} {{.QueryStructName}}Do) DeleteByIDs(ids ...{{.PrimaryGoType}}) (gen.ResultInfo, error) {
+    if len(ids) == 0 {
+        return gen.ResultInfo{RowsAffected: 0, Error: nil}, nil
+    }
+    pk := field.New{{.PrimaryFieldGenType}}({{.S}}.TableName(), "{{.PrimaryFieldColumn}}")
+    return {{.S}}.Where(pk.In(ids...)).Delete()
+}
+{{end}}
+
 func ({{.S}} *{{.QueryStructName}}Do) withDO(do gen.Dao) (*{{.QueryStructName}}Do) {
 	{{.S}}.DO = *do.(*gen.DO)
 	return {{.S}}

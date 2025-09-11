@@ -1,17 +1,17 @@
 package generate
 
 import (
-	"context"
-	"fmt"
-	"reflect"
-	"strings"
+    "context"
+    "fmt"
+    "reflect"
+    "strings"
 
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+    "gorm.io/gorm"
+    "gorm.io/gorm/schema"
 
-	"go.ipao.vip/gen/field"
-	"go.ipao.vip/gen/internal/model"
-	"go.ipao.vip/gen/internal/parser"
+    "go.ipao.vip/gen/field"
+    "go.ipao.vip/gen/internal/model"
+    "go.ipao.vip/gen/internal/parser"
 )
 
 type FieldParser interface {
@@ -48,6 +48,82 @@ type QueryStructMeta struct {
 	// Usually the model struct name (e.g., "User"). When generating queries in the same
 	// package as models, this can be set to "UserQuery" to avoid name conflicts.
 	TopName string
+}
+
+// PrimaryField returns the single primary key field if present (and only one), otherwise nil.
+func (b *QueryStructMeta) PrimaryField() *model.Field {
+    var pk *model.Field
+    for _, f := range b.Fields {
+        if f == nil || f.IsRelation() {
+            continue
+        }
+        if isPrimaryField(f) {
+            if pk != nil {
+                // Composite primary key: not supported for ID helpers
+                return nil
+            }
+            ff := f
+            pk = ff
+        }
+    }
+    return pk
+}
+
+// HasPrimaryKey reports whether there is exactly one primary key field.
+func (b *QueryStructMeta) HasPrimaryKey() bool { return b.PrimaryField() != nil }
+
+// PrimaryFieldName returns the Go field name for the primary key, or empty string.
+func (b *QueryStructMeta) PrimaryFieldName() string {
+    if f := b.PrimaryField(); f != nil { return f.Name }
+    return ""
+}
+
+// PrimaryGoType returns the base Go type (without pointer) for the primary key, or empty string.
+func (b *QueryStructMeta) PrimaryGoType() string {
+    if f := b.PrimaryField(); f != nil {
+        typ := f.Type
+        for strings.HasPrefix(typ, "*") {
+            typ = strings.TrimPrefix(typ, "*")
+        }
+        return typ
+    }
+    return ""
+}
+
+func isPrimaryField(f *model.Field) bool {
+    if f == nil {
+        return false
+    }
+    // Prefer structured GORMTag if available (DB-introspected path)
+    if len(f.GORMTag) > 0 {
+        if _, ok := f.GORMTag[field.TagKeyGormPrimaryKey]; ok {
+            return true
+        }
+    }
+    // Fallback to raw tag string if present (object-based path)
+    if s, ok := f.Tag[field.TagKeyGorm]; ok {
+        // raw gorm tag like: "primaryKey;autoIncrement" (v2) or legacy "primary_key"
+        if strings.Contains(s, field.TagKeyGormPrimaryKey) || strings.Contains(s, "primary_key") {
+            return true
+        }
+    }
+    return false
+}
+
+// PrimaryFieldColumn returns the column name for the primary key or empty string.
+func (b *QueryStructMeta) PrimaryFieldColumn() string {
+    if f := b.PrimaryField(); f != nil {
+        return f.ColumnName
+    }
+    return ""
+}
+
+// PrimaryFieldGenType returns the generator field GenType (e.g., "Uint", "Int64", "String").
+func (b *QueryStructMeta) PrimaryFieldGenType() string {
+    if f := b.PrimaryField(); f != nil {
+        return f.GenType()
+    }
+    return ""
 }
 
 // parseStruct get all elements of struct with gorm's Parse, ignore unexported elements
