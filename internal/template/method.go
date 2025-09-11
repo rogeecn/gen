@@ -254,6 +254,85 @@ func ({{.S}} {{.QueryStructName}}Do) Delete(models ...*{{.StructPkgPrefix}}{{.St
 	return {{.S}}.DO.Delete(models)
 }
 
+// ForceDelete performs a permanent delete (ignores soft-delete) for current scope.
+func ({{.S}} {{.QueryStructName}}Do) ForceDelete() (gen.ResultInfo, error) {
+    return {{.S}}.Unscoped().Delete()
+}
+
+// Inc increases the given column by step for current scope.
+func ({{.S}} {{.QueryStructName}}Do) Inc(column field.Expr, step int64) (gen.ResultInfo, error) {
+    // column = column + step
+    e := field.NewUnsafeFieldRaw("?+?", column.RawExpr(), step)
+    return {{.S}}.DO.UpdateColumn(column, e)
+}
+
+// Dec decreases the given column by step for current scope.
+func ({{.S}} {{.QueryStructName}}Do) Dec(column field.Expr, step int64) (gen.ResultInfo, error) {
+    // column = column - step
+    e := field.NewUnsafeFieldRaw("?-?", column.RawExpr(), step)
+    return {{.S}}.DO.UpdateColumn(column, e)
+}
+
+// Sum returns SUM(column) for current scope.
+func ({{.S}} {{.QueryStructName}}Do) Sum(column field.Expr) (float64, error) {
+    var v float64
+    agg := field.NewUnsafeFieldRaw("SUM(?)", column.RawExpr())
+    if err := {{.S}}.Select(agg).Scan(&v); err != nil {
+        return 0, err
+    }
+    return v, nil
+}
+
+// Avg returns AVG(column) for current scope.
+func ({{.S}} {{.QueryStructName}}Do) Avg(column field.Expr) (float64, error) {
+    var v float64
+    agg := field.NewUnsafeFieldRaw("AVG(?)", column.RawExpr())
+    if err := {{.S}}.Select(agg).Scan(&v); err != nil {
+        return 0, err
+    }
+    return v, nil
+}
+
+// Min returns MIN(column) for current scope.
+func ({{.S}} {{.QueryStructName}}Do) Min(column field.Expr) (float64, error) {
+    var v float64
+    agg := field.NewUnsafeFieldRaw("MIN(?)", column.RawExpr())
+    if err := {{.S}}.Select(agg).Scan(&v); err != nil {
+        return 0, err
+    }
+    return v, nil
+}
+
+// Max returns MAX(column) for current scope.
+func ({{.S}} {{.QueryStructName}}Do) Max(column field.Expr) (float64, error) {
+    var v float64
+    agg := field.NewUnsafeFieldRaw("MAX(?)", column.RawExpr())
+    if err := {{.S}}.Select(agg).Scan(&v); err != nil {
+        return 0, err
+    }
+    return v, nil
+}
+
+// PluckMap returns a map[key]value for selected key/value expressions within current scope.
+func ({{.S}} {{.QueryStructName}}Do) PluckMap(key, val field.Expr) (map[interface{}]interface{}, error) {
+    do := {{.S}}.Select(key, val)
+    rows, err := do.DO.Rows()
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+    m := make(map[interface{}]interface{})
+    for rows.Next() {
+        var k interface{}
+        var v interface{}
+        if err := rows.Scan(&k, &v); err != nil {
+            return nil, err
+        }
+        m[k] = v
+    }
+    return m, rows.Err()
+}
+
 // Exists returns true if any record matches the given conditions.
 func ({{.S}} {{.QueryStructName}}Do) Exists(conds ...gen.Condition) (bool, error) {
     cnt, err := {{.S}}.Where(conds...).Count()
@@ -264,6 +343,16 @@ func ({{.S}} {{.QueryStructName}}Do) Exists(conds ...gen.Condition) (bool, error
 }
 
 {{if .HasPrimaryKey}}
+// PluckIDs returns all primary key values under current scope.
+func ({{.S}} {{.QueryStructName}}Do) PluckIDs() ([]{{.PrimaryGoType}}, error) {
+    ids := make([]{{.PrimaryGoType}}, 0, 16)
+    pk := field.New{{.PrimaryFieldGenType}}({{.S}}.TableName(), "{{.PrimaryFieldColumn}}")
+    if err := {{.S}}.DO.Pluck(pk, &ids); err != nil {
+        return nil, err
+    }
+    return ids, nil
+}
+
 // GetByID finds a single record by primary key.
 func ({{.S}} {{.QueryStructName}}Do) GetByID(id {{.PrimaryGoType}}) (*{{.StructPkgPrefix}}{{.StructInfo.Type}}, error) {
     pk := field.New{{.PrimaryFieldGenType}}({{.S}}.TableName(), "{{.PrimaryFieldColumn}}")
@@ -293,6 +382,23 @@ func ({{.S}} {{.QueryStructName}}Do) DeleteByIDs(ids ...{{.PrimaryGoType}}) (gen
     pk := field.New{{.PrimaryFieldGenType}}({{.S}}.TableName(), "{{.PrimaryFieldColumn}}")
     return {{.S}}.Where(pk.In(ids...)).Delete()
 }
+{{end}}
+
+{{if .HasSoftDelete}}
+// RestoreWhere sets deleted_at to NULL for rows matching current scope + conds.
+func ({{.S}} {{.QueryStructName}}Do) RestoreWhere(conds ...gen.Condition) (gen.ResultInfo, error) {
+    col := field.NewField({{.S}}.TableName(), "deleted_at")
+    return {{.S}}.Unscoped().Where(conds...).DO.UpdateColumn(col, nil)
+}
+
+{{if .HasPrimaryKey}}
+// RestoreByID sets deleted_at to NULL for the given primary key.
+func ({{.S}} {{.QueryStructName}}Do) RestoreByID(id {{.PrimaryGoType}}) (gen.ResultInfo, error) {
+    pk := field.New{{.PrimaryFieldGenType}}({{.S}}.TableName(), "{{.PrimaryFieldColumn}}")
+    col := field.NewField({{.S}}.TableName(), "deleted_at")
+    return {{.S}}.Unscoped().Where(pk.Eq(id)).DO.UpdateColumn(col, nil)
+}
+{{end}}
 {{end}}
 
 func ({{.S}} *{{.QueryStructName}}Do) withDO(do gen.Dao) (*{{.QueryStructName}}Do) {

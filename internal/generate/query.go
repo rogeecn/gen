@@ -110,6 +110,26 @@ func isPrimaryField(f *model.Field) bool {
     return false
 }
 
+// HasSoftDelete reports whether the model has a soft-delete column.
+// It checks for a field named "deleted_at" or typed as gorm.DeletedAt.
+func (b *QueryStructMeta) HasSoftDelete() bool {
+    for _, f := range b.Fields {
+        if f == nil || f.IsRelation() {
+            continue
+        }
+        // Column name check is most reliable
+        if strings.EqualFold(f.ColumnName, "deleted_at") {
+            return true
+        }
+        // Fallback to type string if provided by object mode
+        typ := strings.TrimLeft(f.Type, "*")
+        if typ == "gorm.DeletedAt" {
+            return true
+        }
+    }
+    return false
+}
+
 // PrimaryFieldColumn returns the column name for the primary key or empty string.
 func (b *QueryStructMeta) PrimaryFieldColumn() string {
     if f := b.PrimaryField(); f != nil {

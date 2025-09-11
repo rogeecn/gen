@@ -210,6 +210,14 @@ type I{{.ModelStructName}}Do interface {
 	Row() *sql.Row
 	Scan(result interface{}) (err error)
 	Exists(conds ...gen.Condition) (bool, error)
+	// Aggregates and counters
+	Inc(column field.Expr, step int64) (info gen.ResultInfo, err error)
+	Dec(column field.Expr, step int64) (info gen.ResultInfo, err error)
+	Sum(column field.Expr) (float64, error)
+	Avg(column field.Expr) (float64, error)
+	Min(column field.Expr) (float64, error)
+	Max(column field.Expr) (float64, error)
+	PluckMap(key, val field.Expr) (map[interface{}]interface{}, error)
 	Returning(value interface{}, columns ...string) I{{.ModelStructName}}Do
 	UnderlyingDB() *gorm.DB
 	schema.Tabler
@@ -219,10 +227,19 @@ type I{{.ModelStructName}}Do interface {
 	{{end}}
 
 {{if .HasPrimaryKey}}
+	PluckIDs() ([]{{.PrimaryGoType}}, error)
 	GetByID(id {{.PrimaryGoType}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
 	GetByIDs(ids ...{{.PrimaryGoType}}) ([]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
 	DeleteByID(id {{.PrimaryGoType}}) (info gen.ResultInfo, err error)
 	DeleteByIDs(ids ...{{.PrimaryGoType}}) (info gen.ResultInfo, err error)
+{{end}}
+
+	ForceDelete() (info gen.ResultInfo, err error)
+{{if .HasSoftDelete}}
+	RestoreWhere(conds ...gen.Condition) (info gen.ResultInfo, err error)
+{{if .HasPrimaryKey}}
+	RestoreByID(id {{.PrimaryGoType}}) (info gen.ResultInfo, err error)
+{{end}}
 {{end}}
 
 }
