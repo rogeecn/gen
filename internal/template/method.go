@@ -388,7 +388,7 @@ func ({{.S}} {{.QueryStructName}}Do) DeleteByIDs(ids ...{{.PrimaryGoType}}) (gen
 // RestoreWhere sets deleted_at to NULL for rows matching current scope + conds.
 func ({{.S}} {{.QueryStructName}}Do) RestoreWhere(conds ...gen.Condition) (gen.ResultInfo, error) {
     col := field.NewField({{.S}}.TableName(), "deleted_at")
-    return {{.S}}.Unscoped().Where(conds...).DO.UpdateColumn(col, nil)
+    return {{.S}}.Unscoped().Where(conds...).UpdateColumn(col, nil)
 }
 
 {{if .HasPrimaryKey}}
@@ -396,7 +396,7 @@ func ({{.S}} {{.QueryStructName}}Do) RestoreWhere(conds ...gen.Condition) (gen.R
 func ({{.S}} {{.QueryStructName}}Do) RestoreByID(id {{.PrimaryGoType}}) (gen.ResultInfo, error) {
     pk := field.New{{.PrimaryFieldGenType}}({{.S}}.TableName(), "{{.PrimaryFieldColumn}}")
     col := field.NewField({{.S}}.TableName(), "deleted_at")
-    return {{.S}}.Unscoped().Where(pk.Eq(id)).DO.UpdateColumn(col, nil)
+    return {{.S}}.Unscoped().Where(pk.Eq(id)).UpdateColumn(col, nil)
 }
 {{end}}
 {{end}}
