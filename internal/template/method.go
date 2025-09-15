@@ -275,42 +275,42 @@ func ({{.S}} {{.QueryStructName}}Do) Dec(column field.Expr, step int64) (gen.Res
 
 // Sum returns SUM(column) for current scope.
 func ({{.S}} {{.QueryStructName}}Do) Sum(column field.Expr) (float64, error) {
-    var v float64
+    var _v float64
     agg := field.NewUnsafeFieldRaw("SUM(?)", column.RawExpr())
-    if err := {{.S}}.Select(agg).Scan(&v); err != nil {
+    if err := {{.S}}.Select(agg).Scan(&_v); err != nil {
         return 0, err
     }
-    return v, nil
+    return _v, nil
 }
 
 // Avg returns AVG(column) for current scope.
 func ({{.S}} {{.QueryStructName}}Do) Avg(column field.Expr) (float64, error) {
-    var v float64
+    var _v float64
     agg := field.NewUnsafeFieldRaw("AVG(?)", column.RawExpr())
-    if err := {{.S}}.Select(agg).Scan(&v); err != nil {
+    if err := {{.S}}.Select(agg).Scan(&_v); err != nil {
         return 0, err
     }
-    return v, nil
+    return _v, nil
 }
 
 // Min returns MIN(column) for current scope.
 func ({{.S}} {{.QueryStructName}}Do) Min(column field.Expr) (float64, error) {
-    var v float64
+    var _v float64
     agg := field.NewUnsafeFieldRaw("MIN(?)", column.RawExpr())
-    if err := {{.S}}.Select(agg).Scan(&v); err != nil {
+    if err := {{.S}}.Select(agg).Scan(&_v); err != nil {
         return 0, err
     }
-    return v, nil
+    return _v, nil
 }
 
 // Max returns MAX(column) for current scope.
 func ({{.S}} {{.QueryStructName}}Do) Max(column field.Expr) (float64, error) {
-    var v float64
+    var _v float64
     agg := field.NewUnsafeFieldRaw("MAX(?)", column.RawExpr())
-    if err := {{.S}}.Select(agg).Scan(&v); err != nil {
+    if err := {{.S}}.Select(agg).Scan(&_v); err != nil {
         return 0, err
     }
-    return v, nil
+    return _v, nil
 }
 
 // PluckMap returns a map[key]value for selected key/value expressions within current scope.
