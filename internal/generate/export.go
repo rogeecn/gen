@@ -174,45 +174,6 @@ func isNil(i interface{}) bool {
 	return v.Kind() == reflect.Ptr && v.IsNil()
 }
 
-// BuildDIYMethod check the legitimacy of interfaces
-func BuildDIYMethod(f *parser.InterfaceSet, s *QueryStructMeta, data []*InterfaceMethod) (checkResults []*InterfaceMethod, err error) {
-	for _, interfaceInfo := range f.Interfaces {
-		if interfaceInfo.MatchStruct(s.ModelStructName) {
-			for _, method := range interfaceInfo.Methods {
-				t := &InterfaceMethod{
-					S:             s.S,
-					TargetStruct:  s.QueryStructName,
-					OriginStruct:  s.StructInfo,
-					MethodName:    method.MethodName,
-					Params:        method.Params,
-					Doc:           method.Doc,
-					Table:         s.TableName,
-					InterfaceName: interfaceInfo.Name,
-					Package:       getPackageName(interfaceInfo.Package),
-				}
-				if err = t.checkMethod(data, s); err != nil {
-					return nil, err
-				}
-				if err = t.checkParams(method.Params); err != nil {
-					return
-				}
-				if err = t.checkResult(method.Result); err != nil {
-					return
-				}
-				if err = t.checkSQL(); err != nil {
-					return
-				}
-				_, err = t.Section.BuildSQL()
-				if err != nil {
-					err = fmt.Errorf("sql [%s] build err:%w", t.SQLString, err)
-					return
-				}
-				checkResults = append(checkResults, t)
-			}
-		}
-	}
-	return
-}
 
 // ParseStructRelationShip parse struct's relationship
 // No one should use it directly in project

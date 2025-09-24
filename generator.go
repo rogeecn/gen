@@ -23,7 +23,6 @@ import (
 	"go.ipao.vip/gen/helper"
 	"go.ipao.vip/gen/internal/generate"
 	"go.ipao.vip/gen/internal/model"
-	"go.ipao.vip/gen/internal/parser"
 	tmpl "go.ipao.vip/gen/internal/template"
 	"go.ipao.vip/gen/internal/utils/pools"
 )
@@ -65,25 +64,10 @@ func NewGenerator(cfg Config) *Generator {
 // genInfo info about generated code
 type genInfo struct {
 	*generate.QueryStructMeta
-	Interfaces []*generate.InterfaceMethod
 }
 
-func (i *genInfo) appendMethods(methods []*generate.InterfaceMethod) {
-	for _, newMethod := range methods {
-		if i.methodInGenInfo(newMethod) {
-			continue
-		}
-		i.Interfaces = append(i.Interfaces, newMethod)
-	}
-}
-
-func (i *genInfo) methodInGenInfo(m *generate.InterfaceMethod) bool {
-	for _, method := range i.Interfaces {
-		if method.IsRepeatFromSameInterface(m) {
-			return true
-		}
-	}
-	return false
+func (i *genInfo) appendMethods(methods interface{}) {
+	// DIY methods functionality removed
 }
 
 // Logger  gen logger interface
@@ -203,6 +187,28 @@ func (g *Generator) genModelConfig(tableName, modelName string, modelOpts []Mode
 	}
 }
 
+// GenerateModels register models for code generation
+func (g *Generator) GenerateModels(models ...interface{}) {
+	structs, err := generate.ConvertStructs(g.db, models...)
+	if err != nil {
+		g.db.Logger.Error(context.Background(), "check struct fail: %v", err)
+		panic("check struct fail")
+	}
+
+	for _, structMeta := range structs {
+		if g.judgeMode(WithoutContext) {
+			structMeta.ReviseFieldNameFor(model.GormKeywords)
+		}
+		structMeta.ReviseFieldNameFor(model.DOKeywords)
+
+		_, err := g.pushQueryStructMeta(structMeta)
+		if err != nil {
+			g.db.Logger.Error(context.Background(), "gen struct fail: %v", err)
+			panic("gen struct fail")
+		}
+	}
+}
+
 func (g *Generator) getTablePrefix() string {
 	if ns, ok := g.db.NamingStrategy.(schema.NamingStrategy); ok {
 		return ns.TablePrefix
@@ -222,56 +228,8 @@ func (g *Generator) genModelObjConfig() *model.Config {
 	}
 }
 
-// ApplyBasic specify models which will implement basic .diy_method
-func (g *Generator) ApplyBasic(models ...interface{}) {
-	g.ApplyInterface(func() {}, models...)
-}
 
-// ApplyInterface specifies .diy_method interfaces on structures, implment codes will be generated after calling g.Execute()
-// eg: g.ApplyInterface(func(model.Method){}, model.User{}, model.Company{})
-func (g *Generator) ApplyInterface(fc interface{}, models ...interface{}) {
-	structs, err := generate.ConvertStructs(g.db, models...)
-	if err != nil {
-		g.db.Logger.Error(context.Background(), "check struct fail: %v", err)
-		panic("check struct fail")
-	}
-	g.apply(fc, structs)
-}
 
-func (g *Generator) apply(fc interface{}, structs []*generate.QueryStructMeta) {
-	interfacePaths, err := parser.GetInterfacePath(fc)
-	if err != nil {
-		g.db.Logger.Error(context.Background(), "get interface name or file fail: %s", err)
-		panic("check interface fail")
-	}
-
-	readInterface := new(parser.InterfaceSet)
-	err = readInterface.ParseFile(interfacePaths, generate.GetStructNames(structs))
-	if err != nil {
-		g.db.Logger.Error(context.Background(), "parser interface file fail: %s", err)
-		panic("parser interface file fail")
-	}
-
-	for _, interfaceStructMeta := range structs {
-		if g.judgeMode(WithoutContext) {
-			interfaceStructMeta.ReviseFieldNameFor(model.GormKeywords)
-		}
-		interfaceStructMeta.ReviseFieldNameFor(model.DOKeywords)
-
-		genInfo, err := g.pushQueryStructMeta(interfaceStructMeta)
-		if err != nil {
-			g.db.Logger.Error(context.Background(), "gen struct fail: %v", err)
-			panic("gen struct fail")
-		}
-
-		functions, err := generate.BuildDIYMethod(readInterface, interfaceStructMeta, genInfo.Interfaces)
-		if err != nil {
-			g.db.Logger.Error(context.Background(), "check interface fail: %v", err)
-			panic("check interface fail")
-		}
-		genInfo.appendMethods(functions)
-	}
-}
 
 // Execute generate code to output path
 func (g *Generator) Execute() {
@@ -373,11 +331,7 @@ func (g *Generator) generateQueryFile() (err error) {
 			g.db.Logger.Error(context.Background(), "generate query unit test fail: %s", err)
 			return nil
 		}
-		err = render(tmpl.DIYMethodTestBasic, &buf, nil)
-		if err != nil {
-			return err
-		}
-		err = render(tmpl.QueryMethodTest, &buf, g)
+				err = render(tmpl.QueryMethodTest, &buf, g)
 		if err != nil {
 			g.db.Logger.Error(context.Background(), "generate query unit test fail: %s", err)
 			return nil
@@ -469,13 +423,7 @@ func (g *Generator) generateSingleQueryFile(data *genInfo) (err error) {
 		}
 	}
 
-	for _, method := range data.Interfaces {
-		err = render(tmpl.DIYMethod, &buf, method)
-		if err != nil {
-			return err
-		}
-	}
-
+	
 	err = render(tmpl.CRUDMethod, &buf, data.QueryStructMeta)
 	if err != nil {
 		return err
@@ -511,13 +459,7 @@ func (g *Generator) generateQueryUnitTestFile(data *genInfo) (err error) {
 		return err
 	}
 
-	for _, method := range data.Interfaces {
-		err = render(tmpl.DIYMethodTest, &buf, method)
-		if err != nil {
-			return err
-		}
-	}
-
+	
 	defer g.info(
 		fmt.Sprintf("generate unit test file: %s%s%s.gen_test.go", g.OutPath, string(os.PathSeparator), data.FileName),
 	)
@@ -671,13 +613,7 @@ func getImportPkgPaths(data *genInfo) []string {
 	for _, path := range data.ImportPkgPaths {
 		importPathMap[path] = struct{}{}
 	}
-	// imports.Process (called in Generator.output) will guess missing imports, and will be
-	// much faster if import path is already specified. So add all imports from DIY interface package.
-	for _, method := range data.Interfaces {
-		for _, param := range method.Params {
-			importPathMap[param.PkgPath] = struct{}{}
-		}
-	}
+	// DIY interface imports removed
 	importPkgPaths := make([]string, 0, len(importPathMap))
 	for importPath := range importPathMap {
 		importPkgPaths = append(importPkgPaths, importPath)

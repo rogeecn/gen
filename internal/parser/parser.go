@@ -3,123 +3,9 @@ package parser
 import (
 	"fmt"
 	"go/ast"
-	"go/parser"
-	"go/token"
 	"log"
-	"path"
-	"path/filepath"
-	"strconv"
 	"strings"
 )
-
-// InterfaceSet ...
-type InterfaceSet struct {
-	Interfaces []InterfaceInfo
-	imports    map[string]string // package name -> quoted "package path"
-}
-
-// InterfaceInfo ...
-type InterfaceInfo struct {
-	Name        string
-	Doc         string
-	Methods     []*Method
-	Package     string
-	ApplyStruct []string
-}
-
-// MatchStruct ...
-func (i *InterfaceInfo) MatchStruct(name string) bool {
-	for _, s := range i.ApplyStruct {
-		if s == name {
-			return true
-		}
-	}
-	return false
-}
-
-// ParseFile get interface's info from source file
-func (i *InterfaceSet) ParseFile(paths []*InterfacePath, structNames []string) error {
-	for _, path := range paths {
-		for _, file := range path.Files {
-			absFilePath, err := filepath.Abs(file)
-			if err != nil {
-				return fmt.Errorf("file not found: %s", file)
-			}
-
-			err = i.getInterfaceFromFile(absFilePath, path.Name, path.FullName, structNames)
-			if err != nil {
-				return fmt.Errorf("can't get interface from %s:%s", path.FullName, err)
-			}
-		}
-	}
-	return nil
-}
-
-// Visit ast visit function
-func (i *InterfaceSet) Visit(n ast.Node) (w ast.Visitor) {
-	switch n := n.(type) {
-	case *ast.ImportSpec:
-		importName, _ := strconv.Unquote(n.Path.Value)
-		importName = path.Base(importName)
-		if n.Name != nil {
-			name := n.Name.Name
-			// ignore dummy imports
-			// TODO: full support for dot imports requires type checking the whole package
-			if name == "_" || name == "." {
-				return i
-			}
-			importName = name
-		}
-		i.imports[importName] = n.Path.Value
-	case *ast.TypeSpec:
-		if data, ok := n.Type.(*ast.InterfaceType); ok {
-			r := InterfaceInfo{
-				Methods: []*Method{},
-			}
-			methods := data.Methods.List
-			r.Name = n.Name.Name
-			r.Doc = n.Doc.Text()
-
-			for _, m := range methods {
-				for _, name := range m.Names {
-					method := &Method{
-						MethodName: name.Name,
-						Doc:        m.Doc.Text(),
-						Params:     getParamList(m.Type.(*ast.FuncType).Params),
-						Result:     getParamList(m.Type.(*ast.FuncType).Results),
-					}
-					fixParamPackagePath(i.imports, method.Params)
-					r.Methods = append(r.Methods, method)
-				}
-			}
-			i.Interfaces = append(i.Interfaces, r)
-		}
-	}
-	return i
-}
-
-// getInterfaceFromFile get interfaces
-// get all interfaces from file and compare with specified name
-func (i *InterfaceSet) getInterfaceFromFile(filename, name, Package string, structNames []string) error {
-	fileset := token.NewFileSet()
-	f, err := parser.ParseFile(fileset, filename, nil, parser.ParseComments)
-	if err != nil {
-		return fmt.Errorf("can't parse file %q: %s", filename, err)
-	}
-
-	astResult := &InterfaceSet{imports: make(map[string]string)}
-	ast.Walk(astResult, f)
-
-	for _, info := range astResult.Interfaces {
-		if name == info.Name {
-			info.Package = Package
-			info.ApplyStruct = structNames
-			i.Interfaces = append(i.Interfaces, info)
-		}
-	}
-
-	return nil
-}
 
 // Param parameters in method
 type Param struct { // (user model.User)
@@ -326,4 +212,90 @@ func astGetType(expr ast.Expr) string {
 		return "interface{}"
 	}
 	return ""
+}
+
+// Method Apply to query struct and base struct custom method
+type Method struct {
+	Receiver   Param
+	MethodName string
+	Doc        string
+	Params     []Param
+	Result     []Param
+	Body       string
+}
+
+// FuncSign function signature
+func (m Method) FuncSign() string {
+	return fmt.Sprintf("%s(%s) (%s)", m.MethodName, m.GetParamInTmpl(), m.GetResultParamInTmpl())
+}
+
+// GetBaseStructTmpl return method bind info string
+func (m *Method) GetBaseStructTmpl() string {
+	return m.Receiver.TmplString()
+}
+
+// GetParamInTmpl return param list
+func (m *Method) GetParamInTmpl() string {
+	return paramToString(m.Params)
+}
+
+// GetResultParamInTmpl return result list
+func (m *Method) GetResultParamInTmpl() string {
+	return paramToString(m.Result)
+}
+
+// paramToString param list to string used in tmpl
+func paramToString(params []Param) string {
+	res := make([]string, len(params))
+	for i, param := range params {
+		res[i] = param.TmplString()
+	}
+	return strings.Join(res, ",")
+}
+
+// DocComment return comment sql add "//" every line
+func (m *Method) DocComment() string {
+	return strings.Replace(strings.TrimSpace(m.Doc), "\n", "\n//", -1)
+}
+
+func DefaultMethodTableName(structName string) *Method {
+	return &Method{
+		Receiver:   Param{IsPointer: true, Type: structName},
+		MethodName: "TableName",
+		Doc:        fmt.Sprint("TableName ", structName, "'s table name "),
+		Result:     []Param{{Type: "string"}},
+		Body:       fmt.Sprintf("{\n\treturn TableName%s\n} ", structName),
+	}
+}
+
+func getParamList(expr *ast.FieldList) []Param {
+	if expr == nil {
+		return nil
+	}
+	params := make([]Param, 0, expr.NumFields())
+	for _, param := range expr.List {
+		p := Param{}
+		p.astGetParamType(param)
+		if len(param.Names) == 0 {
+			params = append(params, p)
+			continue
+		}
+		for _, name := range param.Names {
+			newParam := p
+			newParam.Name = name.Name
+			params = append(params, newParam)
+		}
+	}
+	return params
+}
+
+func fixParamPackagePath(imports map[string]string, params []Param) {
+	for i := range params {
+		if params[i].Package == "UNDEFINED" {
+			if importPath, ok := imports[params[i].Type]; ok {
+				params[i].Package = ""
+				params[i].PkgPath = strings.Trim(importPath, `"`)
+			}
+		}
+	}
 }

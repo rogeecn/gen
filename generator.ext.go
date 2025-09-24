@@ -92,7 +92,7 @@ func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
 	g.UseDB(db)
 
 	if transformConfigFile == "" {
-		g.ApplyBasic(g.GenerateAllTable()...)
+		g.GenerateModels(g.GenerateAllTable()...)
 		g.Execute()
 		return
 	}
@@ -158,7 +158,7 @@ func GenerateWithDefault(db *gorm.DB, transformConfigFile string) {
 	for tbl, opts := range mapTables {
 		models = append(models, g.GenerateModel(tbl, opts...))
 	}
-	g.ApplyBasic(models...)
+	g.GenerateModels(models...)
 
 	// Generate
 	g.Execute()

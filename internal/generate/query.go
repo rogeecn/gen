@@ -1,7 +1,6 @@
 package generate
 
 import (
-    "context"
     "fmt"
     "reflect"
     "strings"
@@ -283,36 +282,6 @@ func (b *QueryStructMeta) QueryStructComment() string {
 	return ``
 }
 
-// ReviseDIYMethod check diy method duplication name
-func (b *QueryStructMeta) ReviseDIYMethod() error {
-	var duplicateMethodName []string
-	var tableName *parser.Method
-	methods := make([]*parser.Method, 0, len(b.ModelMethods))
-	methodMap := make(map[string]bool, len(b.ModelMethods))
-	for _, method := range b.ModelMethods {
-		if methodMap[method.MethodName] {
-			duplicateMethodName = append(duplicateMethodName, method.MethodName)
-			continue
-		}
-		if method.MethodName == "TableName" {
-			tableName = method
-		}
-		method.Receiver.Package = ""
-		method.Receiver.Type = b.ModelStructName
-		b.pasreTableName(method)
-		methods = append(methods, method)
-		methodMap[method.MethodName] = true
-	}
-	if tableName == nil {
-		methods = append(methods, parser.DefaultMethodTableName(b.ModelStructName))
-	}
-	b.ModelMethods = methods
-
-	if len(duplicateMethodName) > 0 {
-		return fmt.Errorf("can't generate struct with duplicated method, please check method name: %s", strings.Join(duplicateMethodName, ","))
-	}
-	return nil
-}
 
 func (b *QueryStructMeta) pasreTableName(method *parser.Method) {
 	if method == nil || method.Body == "" || !strings.Contains(method.Body, "@@table") {
@@ -325,18 +294,7 @@ func (b *QueryStructMeta) pasreTableName(method *parser.Method) {
 }
 
 func (b *QueryStructMeta) addMethodFromAddMethodOpt(methods ...interface{}) *QueryStructMeta {
-	for _, method := range methods {
-		modelMethods, err := parser.GetModelMethod(method)
-		if err != nil {
-			panic("add diy method err:" + err.Error())
-		}
-		b.ModelMethods = append(b.ModelMethods, modelMethods.Methods...)
-	}
-
-	err := b.ReviseDIYMethod()
-	if err != nil {
-		b.db.Logger.Warn(context.Background(), err.Error())
-	}
+	// DIY methods functionality removed
 	return b
 }
 

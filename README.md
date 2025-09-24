@@ -59,11 +59,6 @@ g.Execute()          // 输出代码到 OutPath
   g.GenerateModel("user")
   ```
 
-- 自定义方法/接口：
-
-  ```go
-  g.ApplyInterface(func(MyMethodInterface){}, MyModel{})
-  ```
 
 - 生成单元测试：
 
