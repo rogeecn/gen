@@ -1,6 +1,5 @@
 package template
 
-
 // CRUDMethod CRUD method
 const CRUDMethod = `
 func ({{.S}} {{.QueryStructName}}Do) Debug() {{.ReturnObject}} {
@@ -295,16 +294,16 @@ func ({{.S}} {{.QueryStructName}}Do) PluckMap(key, val field.Expr) (map[interfac
         return nil, err
     }
     defer rows.Close()
-    m := make(map[interface{}]interface{})
+    mm := make(map[interface{}]interface{})
     for rows.Next() {
         var k interface{}
         var v interface{}
         if err := rows.Scan(&k, &v); err != nil {
             return nil, err
         }
-        m[k] = v
+        mm[k] = v
     }
-    return m, rows.Err()
+    return mm, rows.Err()
 }
 
 // Exists returns true if any record matches the given conditions.
@@ -511,4 +510,3 @@ func Test_{{.QueryStructName}}Query(t *testing.T) {
 	}
 }
 `
-
