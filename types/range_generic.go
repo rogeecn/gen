@@ -3,9 +3,11 @@ package types
 import (
 	"context"
 	"database/sql/driver"
+	"encoding"
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -90,67 +92,133 @@ func parseRangeVal[T any](s string) (T, error) {
 	if s == "" || strings.EqualFold(s, "infinity") || strings.EqualFold(s, "-infinity") {
 		return zero, nil
 	}
-	switch any(zero).(type) {
-	case int32:
-		v, err := strconv.ParseInt(s, 10, 32)
-		return any(int32(v)).(T), err
-	case int64:
-		v, err := strconv.ParseInt(s, 10, 64)
-		return any(int64(v)).(T), err
-	case *big.Rat:
+
+	// Prefer custom parsing/validation when available (e.g. enums or custom types).
+	if scanner, ok := any(&zero).(interface{ Scan(any) error }); ok {
+		if err := scanner.Scan(s); err != nil {
+			return zero, err
+		}
+		return zero, nil
+	}
+	if u, ok := any(&zero).(encoding.TextUnmarshaler); ok {
+		if err := u.UnmarshalText([]byte(s)); err != nil {
+			return zero, err
+		}
+		return zero, nil
+	}
+
+	typ := reflect.TypeOf(zero)
+	// Handle pointer types like *big.Rat
+	if typ.Kind() == reflect.Pointer && typ.Elem() == reflect.TypeOf(big.Rat{}) {
 		r := new(big.Rat)
 		if _, ok := r.SetString(s); !ok {
 			return zero, fmt.Errorf("invalid numrange %q", s)
 		}
 		return any(r).(T), nil
-	case time.Time:
-		// PostgreSQL may quote timestamp bounds in range textual output
-		// e.g. ["2023-01-01 00:00:00","2023-01-02 00:00:00")
-		if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
-			// best-effort unquote
-			if uq, err := strconv.Unquote(s); err == nil {
-				s = uq
-			} else {
-				s = strings.Trim(s, "\"")
-			}
+	}
+
+	// Unquote timestamp bounds if needed
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		if uq, err := strconv.Unquote(s); err == nil {
+			s = uq
+		} else {
+			s = strings.Trim(s, "\"")
 		}
-		// Support common timestamp formats produced/accepted by PostgreSQL
+	}
+
+	// time.Time and aliases
+	timeType := reflect.TypeOf(time.Time{})
+	if typ == timeType || typ.ConvertibleTo(timeType) {
 		layouts := []string{
 			time.RFC3339Nano,
 			time.RFC3339,
-			"2006-01-02 15:04:05-07", // with numeric TZ offset
-			"2006-01-02 15:04:05",    // without TZ
-			"2006-01-02",             // date only
+			"2006-01-02 15:04:05-07",
+			"2006-01-02 15:04:05",
+			"2006-01-02",
 		}
-		var t time.Time
-		var err error
+		var parsed time.Time
+		var lastErr error
 		for _, l := range layouts {
-			t, err = time.Parse(l, s)
+			tm, err := time.Parse(l, s)
 			if err == nil {
-				return any(t).(T), nil
+				parsed = tm
+				lastErr = nil
+				break
 			}
+			lastErr = err
 		}
-		return zero, err
+		if lastErr != nil {
+			return zero, lastErr
+		}
+		v := reflect.ValueOf(parsed)
+		if typ != timeType {
+			v = v.Convert(typ)
+		}
+		return v.Interface().(T), nil
+	}
+
+	// Scalar kinds (support defined types with scalar underlying kinds)
+	dst := reflect.New(typ).Elem()
+	switch typ.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		n, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return zero, err
+		}
+		dst.SetInt(n)
+		return dst.Interface().(T), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		n, err := strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return zero, err
+		}
+		dst.SetUint(n)
+		return dst.Interface().(T), nil
+	case reflect.Float32, reflect.Float64:
+		n, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return zero, err
+		}
+		dst.SetFloat(n)
+		return dst.Interface().(T), nil
 	default:
 		return zero, fmt.Errorf("unsupported range type")
 	}
 }
 
 func formatRangeVal[T any](v T) string {
-	switch x := any(v).(type) {
-	case int32:
-		return strconv.FormatInt(int64(x), 10)
-	case int64:
-		return strconv.FormatInt(x, 10)
-	case *big.Rat:
-		if x == nil {
-			return ""
+	typ := reflect.TypeOf(v)
+	rv := reflect.ValueOf(v)
+
+	// Handle pointer types like *big.Rat
+	if typ.Kind() == reflect.Pointer && !rv.IsNil() && typ.Elem() == reflect.TypeOf(big.Rat{}) {
+		r := rv.Interface().(*big.Rat)
+		return r.FloatString(10)
+	}
+
+	// time.Time and aliases
+	timeType := reflect.TypeOf(time.Time{})
+	if typ == timeType || typ.ConvertibleTo(timeType) {
+		tm := rv
+		if typ != timeType {
+			tm = rv.Convert(timeType)
 		}
-		// Postgres NUMERIC expects decimal notation; format rational as decimal
-		return x.FloatString(10)
-	case time.Time:
-		return x.Format(time.RFC3339Nano)
+		return tm.Interface().(time.Time).Format(time.RFC3339Nano)
+	}
+
+	switch typ.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(rv.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return strconv.FormatUint(rv.Uint(), 10)
+	case reflect.Float32:
+		return strconv.FormatFloat(rv.Float(), 'g', -1, 32)
+	case reflect.Float64:
+		return strconv.FormatFloat(rv.Float(), 'g', -1, 64)
 	default:
+		if s, ok := any(v).(fmt.Stringer); ok {
+			return s.String()
+		}
 		return ""
 	}
 }
