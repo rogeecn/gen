@@ -59,7 +59,6 @@ g.Execute()          // 输出代码到 OutPath
   g.GenerateModel("user")
   ```
 
-
 - 生成单元测试：
 
   ```go
@@ -244,7 +243,7 @@ field_relate:
       table: classes
       references: id # 关联表的主键/被引用键（通常是 id）
       foreign_key: class_id # 当前表上的外键列（如 students.class_id）
-      Json: class
+      json: class
     Teachers:
       # belong_to, has_one, has_many, many_to_many
       relation: many_to_many
@@ -254,7 +253,7 @@ field_relate:
       join_foreign_key: class_id # 中间表中指向当前表的列（class_teacher.class_id）
       references: id # 关联表（teachers）被引用的列（转为结构体字段名 ID）
       join_references: teacher_id # 中间表中指向关联表的列（class_teacher.teacher_id）
-      Json: teachers
+      json: teachers
   teachers:
     Classes:
       relation: many_to_many
